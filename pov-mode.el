@@ -3,9 +3,14 @@
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
 ;; Maintainer: Peter Toneby <woormie@acc.umu.se>
 ;; Created: 04 March 1994
-;; Modified: 08 Sep 2003
-;; Version: 2.10
+;; Modified: 05 Feb 2008
+;; Version: 2.10-pl1
 ;; Keywords: pov, povray
+;;
+;; Modified by: Marco Pessotto <marco.erika@gmail.com>
+;; 1/5/2008
+;; Workaround for Emacs 22
+;; Peter Tobeby no more maintains pov-mode :-(
 ;;
 ;; LCD Archive Entry:
 ;; povray|Peter Toneby|woormie@acc.umu.se|
@@ -58,7 +63,9 @@
 ;;
 ;; To learn about the basics, just load a pov-file and press C-h m.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Modified by: Peter Boettcher <pwb@andrew.cmu.edu>
+
+;;
+;;Modified by: Peter Boettcher <pwb@andrew.cmu.edu>
 ;;  5/8/97:
 ;;    Added font-lock support for Emacs/XEmacs 19
 ;;    Indent under `#declare Object=' lines
@@ -235,9 +242,18 @@
        (not font-pov-is-XEmacs20)
        (not font-pov-is-XEmacs21)
        (= 21 emacs-major-version)))
+(defvar font-pov-is-Emacs22
+  (and (not font-pov-is-XEmacs19)
+       (not font-pov-is-XEmacs20)
+       (not font-pov-is-XEmacs21)
+       (= 22 emacs-major-version)))
 
 (defvar font-pov-is-Emacs
-  (or font-pov-is-Emacs19 font-pov-is-Emacs20 font-pov-is-Emacs21))
+  (or font-pov-is-Emacs19 
+      font-pov-is-Emacs20 
+      font-pov-is-Emacs21 
+      font-pov-is-Emacs22))
+
 
 (require 'cl)
 (require 'font-lock) ;;[TODO] Not nice to reqire it, the user should
@@ -312,7 +328,7 @@
   (customize-set-value 'max-lisp-eval-depth 1000))
 
 ;; Yup XEmacs didn't get cutomizations until 20.2.
-(cond ((or font-pov-is-XEmacs20-2 (or font-pov-is-Emacs20 font-pov-is-Emacs21))
+(cond ((or font-pov-is-XEmacs20-2 (or font-pov-is-Emacs20 font-pov-is-Emacs21 font-pov-is-Emacs22))
       (defgroup  pov nil
 	"*Major mode for editing povray 3.X scence files <http://www.povray.org>."
 	:group 'languages)
@@ -400,12 +416,12 @@
 					    '()))
 	"the commands to run")
 
-      (defcustom pov-home-dir "/usr/local/lib/povray31/"
+      (defcustom pov-home-dir "SHARELIBSPOVRAY"
 	"*The directory in which the povray files reside."
 	:type 'directory
 	:group 'pov)
 
-      (defcustom pov-include-dir "/usr/local/lib/povray31/include/"
+      (defcustom pov-include-dir "SHARELIBSPOVRAY/include"
 	"*The directory in which the povray includefiles reside."
 	:type 'directory
 	:group 'pov)
@@ -422,12 +438,12 @@ pov-mode when loaded, unless those file-endings are already in use."
 	:group 'pov)
 
       (defcustom pov-fontify-insanely t
-	"*Non-nil means colorize every povray keyword.  This may take a while on lare files.  Maybe disable this on slow systems."
+	"*Non-nil means colorize every povray keyword.  This may take a while on large files.  Maybe disable this on slow systems."
 	:type 'boolean
 	:group 'pov)
 
       (defcustom pov-imenu-in-menu t
-	"*Non-nil means have #locals and #declares in a menu called PoV in the menubar. This may take a while on lare files.  Maybe disable this on slow systems."
+	"*Non-nil means have #locals and #declares in a menu called PoV in the menubar. This may take a while on large files.  Maybe disable this on slow systems."
 	:type 'boolean
 	:group 'pov)
 ;; CH
@@ -510,10 +526,15 @@ pov-mode when loaded, unless those file-endings are already in use."
 )
 
 ; Find where the menubar icons are placed, should be where pov-mode is...
-(setq pov-icons-location 
-      (file-name-directory (locate-data-file "povrender.xpm" 
-					     (cons (file-name-directory (locate-library "pov-mode")) 
-						   (if font-pov-is-Emacs data-directory data-directory-list)))))
+;; (setq pov-icons-location 
+;;       (file-name-directory (locate-data-file "povrender.xpm" 
+;; 					     (cons (file-name-directory (locate-library "pov-mode")) 
+;; 						   (if font-pov-is-Emacs data-directory data-directory-list)))))
+
+;;FIX ME
+
+(setq pov-icons-location "EMACSLISPLIBRARY/povrender.xpm")
+
 
 ;; Lets play with the Toolbar, we want to add buttons for 
 ;; rendering and showing images, lets place them on the rightmost
@@ -597,7 +618,7 @@ pov-mode when loaded, unless those file-endings are already in use."
 (defun font-pov-setup ()
   "Setup this buffer for PoV font-lock."
   (cond
-   ((or font-pov-is-Emacs20 font-pov-is-Emacs21)
+   ((or font-pov-is-Emacs20 font-pov-is-Emacs21 font-pov-is-Emacs22)
     ;; Tell Font Lock about the support.
     (make-local-variable 'font-lock-defaults))
    ((or font-pov-is-XEmacs19 font-pov-is-XEmacs20)
@@ -619,7 +640,7 @@ pov-mode when loaded, unless those file-endings are already in use."
     (make-local-variable 'font-lock-defaults))))
 
 (cond
- ((or font-pov-is-Emacs20 font-pov-is-XEmacs20-2 font-pov-is-Emacs21)
+ ((or font-pov-is-Emacs20 font-pov-is-XEmacs20-2 font-pov-is-Emacs21 font-pov-is-Emacs22)
   (defface font-pov-object-face
     '((((class grayscale) (background light)) (:foreground "DimGray" :bold t))
       (((class grayscale) (background dark))  (:foreground "LightGray" :bold t))
@@ -2013,12 +2034,12 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
   )
 
 ;; Let's try to find where the InsertMenu is located...
-(setq pov-insertmenu-location
-      (locate-data-directory "InsertMenu" (cons (file-name-directory
-						 (locate-library "pov-mode"))
-						(if font-pov-is-Emacs
-						    data-directory
-						  data-directory-list))))
+(setq pov-insertmenu-location "EMACSLISPLIBRARY/InsertMenu")
+;;       (locate-data-directory "InsertMenu" (cons (file-name-directory
+;; 						 (locate-library "pov-mode"))
+;; 						(if font-pov-is-Emacs
+;; 						    data-directory
+;; 						  data-directory-list))))
 
 (defun pov-im-get-submenunames ()
   (interactive)
