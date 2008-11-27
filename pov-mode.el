@@ -3,8 +3,8 @@
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
 ;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
-;; Modified: 16 Feb 2008
-;; Version: 2.16
+;; Modified: 23 Feb 2008
+;; Version: 2.18
 ;; Keywords: pov, povray
 ;;
 ;;
@@ -69,7 +69,15 @@
 ;; customization menu or by simply entering M-x customize-group pov.
 ;; So, try this! 
 ;; 
-;;
+;; You can customize the Insert menu simply by adding the target 
+;; file in the directory InsertMenu. Please rename the file with the
+;; syntax NUMBER NUMBER SPACE - SPACE NAME WITH SPACES.txt
+;; e.g. "01 - My template.txt". If you use the shell write:
+;; mv myfile.pov 01\ -\ My\ template.txt
+;; Then move it in the InserMenu directory: choose the appropriate 
+;; subdirectory. The number indicate the menu order. Done! Just
+;; restart emacs.
+;; 
 ;; To learn about the basics, just load a pov-file and press C-h m.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; 
@@ -215,22 +223,34 @@
 ;;     Your documentation (for Mac or for previous or later version
 ;;     of PoV-ray) may be somewhere else. Please let me know.
 ;; 2008-02-17 Version 2.15
-;;    Created the tool-bar for GNU Emacs 22.1 (and maybe for previous releases
-;;     If you are running GNU Emacs < 22 and the toolbar works (with 2 icons, 
-;;     for view and for rendering, let me know)
+;;    Created the tool-bar for GNU Emacs 22.1 (and maybe for previous 
+;;     releases. If you are running GNU Emacs < 22 and the toolbar 
+;;     works (with 2 icons, for view and for rendering, let me know)
 ;; 2008-02-17 Version 2.16
-;;    Fixed a portability bug. Use browse-url instead of browse-url-generic
-;;     Use the customize-group browse-url to choose the browser.
+;;    Fixed a portability bug. Uses browse-url instead of 
+;;     browse-url-generic. Use the customize-group browse-url to choose
+;;     the browser.
 ;;     Thanks to Xah Lee for point this out.
-;;    Cleaned code for compilation. However something still remains for suspect 
-;;     compatibily with Xemacs. Please let me if Xemacs works with this package
-;;    Cleaned code and dropped prehistorical releases of (X)emacs that don't support
-;;     customization. Exists the old package. If you stuck with older versions, use
-;;     the older version of this package too. ;-)
+;;    Cleaned code for compilation. However something still remains for 
+;;     suspect compatibily with Xemacs. Please let me if Xemacs works 
+;;     with this package.
+;;    Cleaned code and dropped prehistorical releases of (X)emacs that 
+;;     don't support customization. Exists the old package. If you stuck
+;;     with older versions, use the older version of this package too. 
+;;     ;-)
 ;; 2008-02-20 Version 2.17
-;;    Added a menu for rendering and one for the preview. I didn't use the lisp
-;;     libraries, just modified the keymap. Needs testing with xemacs.
+;;    Added a menu for rendering and one for the preview. I didn't use 
+;;     the lisp libraries, just modified the keymap. Needs testing with 
+;;     xemacs.
 ;;    Upgraded to POV-Ray 3.6
+;; 2008-02-23 Version 2.18 
+;;    Cleaned the InsertMenu directory and added a pair of templates.
+;;    If you like this mode, please *donate* a spare scene to be inserted
+;;     in the InserMenu. 
+;;    Fixed the imenu critical bug that messed up the menubar.
+;;     Not tested with xemacs
+;;    I consider this release quite stable. If you find a bug feel 
+;;     free to contact me. I'll try to fix it.
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -246,6 +266,7 @@
 ;; * Vector operations (add <0, .5, 1> to every vector in region)
 ;; * Clean up completion code
 ;; * TAGS, to jump to #declared objects elsewhere in the code
+;;   MP: use the imenu instead
 ;; * c-mode like electric parens (?)
 ;; * clean up viewing and rendering code
 ;; * should render or view be decided on filedates? If so, what
@@ -254,17 +275,11 @@
 ;;     I could make this a customizeation option.
 ;; * imenu support
 ;;     started, but needs to be fixed so it handles nested menus.
+;;     DONE
 ;; * Make sure the scopes are correct
 ;; * Make hooks for menus, so they are userselectable
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; TODO list (mp)
-;; * portability
-;; * upgrade to PoV-ray 3.6 ; maybe not necessary. 
-;; ;; *fix the bug with: Mark set
-;;  imenu--truncate-items: Wrong type argument: listp, 635
-;;  imenu--cleanup: Wrong type argument: listp, 635
-;;  Auto-saving...
-;;  Workaround: setq pov-imenu-only-macros t (via M-x customize)
+
 
 
 ;;;; Better safe than sorry, lets fail if you are using a (very?) old
@@ -340,17 +355,6 @@
 (defvar font-lock-display-type)
 (defvar font-lock-face-attributes)
 (defvar font-lock-background-mode)
-;; pov-mode.el:963:4:Warning: set-face-foreground called with 5 arguments, but
-;;     accepts only 2-3
-;; pov-mode.el:965:4:Warning: set-face-foreground called with 5 arguments, but
-;;     accepts only 2-3
-;; pov-mode.el:967:4:Warning: set-face-foreground called with 5 arguments, but
-;;     accepts only 2-3
-;; pov-mode.el:965:67:Warning: set-face-foreground called with 5 arguments, but
-;;     accepts only 2-3
-;; pov-mode.el:966:71:Warning: set-face-foreground called with 5 arguments, but
-;;     accepts only 2-3
-;; these warnings are obsolete : we don't use set-face-foreground
 (defvar pov-imenu-in-menu)
 (defvar pov-im-menu)
 (defvar pov-indent-level)
@@ -382,8 +386,8 @@
 (defvar pov-external-view)
 (defvar pov-command-alist)
 (defvar pov-imenu-only-macros)
-(defvar prev-pos nil) ; maybe this will solve a bug with imenu
-(defvar imenu-pov-declare-regexp)
+;; (defvar prev-pos nil) ; maybe this will solve a bug with imenu
+;;(defvar imenu-pov-declare-regexp)
 (defvar pov-render-dialog-desc)
 (defvar pov-insertmenu-location)
 ;; end initialisation
@@ -392,10 +396,10 @@
 (require 'font-lock) 
 (require 'browse-url)
 
-(defconst pov-mode-version '2.16   ;; this is the only occurence
+(defconst pov-mode-version '2.18   ;; this is the only occurence
   "The povray mode version.")
 
-(defvar pov-tab-width 8)
+(defvar pov-tab-width)
 (defvar pov-autoindent-endblocks t)
 
 ;;Create fontfaces
@@ -462,7 +466,8 @@
 
 ;; Yup XEmacs didn't get cutomizations until 20.2.
 ;; I'm going to drop emacsen that don't support customizations
-(cond ((or font-pov-is-XEmacs20-2 (or font-pov-is-Emacs20 font-pov-is-Emacs21 font-pov-is-Emacs22))
+(cond ((or font-pov-is-XEmacs20-2 (or font-pov-is-Emacs20 font-pov-is-Emacs21 
+				      font-pov-is-Emacs22))
       (defgroup  pov nil
 	"*Major mode for editing povray 3.X scence files <http://www.povray.org>."
 	:group 'languages)
@@ -472,7 +477,8 @@
 	:type 'string
 	:group 'pov)
 
-      (defcustom pov-external-viewer-command "display" ;; It seems that ImageMagick is quite popular
+      (defcustom pov-external-viewer-command "display" 
+	;; It seems that ImageMagick is quite popular
 	"*The external viewer to call."
 	:type 'string
 	:group 'pov)
@@ -530,12 +536,6 @@
 	:type 'directory
 	:group 'pov
 	)
-;;       (defcustom pov-external-browser "firefox"
-;; 	"*The name of the command for the external browser"
-;; 	:type 'string 
-;; 	:group 'pov
-;; 	)            NOT PORTABLE
-      
       (defvar pov-external-view
 	"External view")
       (defvar pov-internal-view
@@ -772,7 +772,7 @@ font-pov-keyword-face"
 	   ))))
 
 
-(defun pov-toolbar ()
+(defun pov-toolbar () ;; Xemacs only
   (interactive)
   (set-specifier default-toolbar (cons (current-buffer) pov-toolbar)))
 
@@ -803,7 +803,7 @@ font-pov-keyword-face"
 (defvar font-pov-do-multi-line t
   "*Set this to nil to disable the multi-line fontification prone to infinite loop bugs.")
 
-(defun font-pov-setup ()
+(defun font-pov-setup ()  
   "Setup this buffer for PoV font-lock."
   (cond
    ((or font-pov-is-Emacs20 font-pov-is-Emacs21 font-pov-is-Emacs22)
@@ -823,9 +823,7 @@ font-pov-keyword-face"
 		 ;    (set-face-property 'font-lock-string-face property
 		;			instance (current-buffer)))))
 		 ))
-	      (built-in-face-specifiers))))
-   (font-pov-is-Emacs19
-    (make-local-variable 'font-lock-defaults))))
+	      (built-in-face-specifiers))))))
 
 (cond
  ((or font-pov-is-Emacs20 font-pov-is-XEmacs20-2 font-pov-is-Emacs21 font-pov-is-Emacs22)
@@ -905,73 +903,7 @@ font-pov-keyword-face"
       (t (:bold t)))
     "Font Lock mode face used to highlight operators in PoV."
     :group 'font-pov-faces)))
-;; this is obsolete and should be removed
- 
-;;  (font-pov-is-Emacs19 ;; DROP ME
-;;   (unless (assq 'font-pov-variable-face font-lock-face-attributes)
-;;     (cond 
-;;      ;; FIXME: Add better conditions for grayscale.
-;;      ((memq font-lock-display-type '(mono monochrome grayscale greyscale
-;; 					  grayshade greyshade))
-;;       (setq font-lock-face-attributes
-;; 	    (append
-;; 	     font-lock-face-attributes
-;; 	     (list '(font-pov-variable-face nil nil t nil nil)
-;; 		   '(font-pov-macro-name-face nil nil t nil nil)  ;; C.H.
-;; 		   '(font-pov-keyword-face nil nil nil t nil)     ;; C.H.
-;; 		   '(font-pov-object-face nil nil nil t nil)
-;; 		   '(font-pov-number-face nil nil nil nil t)
-;; 		   (list
-;; 		    'font-pov-operator-face
-;; 		    (cdr (assq 'background-color (frame-parameters)))
-;; 		    (cdr (assq 'foreground-color (frame-parameters)))
-;; 		    nil nil nil)))))
-;;      ((eq font-lock-background-mode 'light) ; light color background
-;;       (setq font-lock-face-attributes
-;; 	    (append 
-;; 	     font-lock-face-attributes
-;; 	     ;;;FIXME: These won't follow font-lock-type-face's changes.
-;; 	     ;;;       Should I change to a (copy-face) scheme?
-;; 	     '((font-pov-variable-face "DarkOliveGreen" nil t nil nil)
-;; 	       (font-pov-macro-name-face "DarkOliveGreen" nil t nil nil)  ;; C.H.
-;; 	       (font-pov-keyword-face "grey50")                           ;; C.H.
-;; 	       (font-pov-number-face "DarkOliveGreen" nil nil t nil)
-;; 	       (font-pov-object-face "grey50")
-;; 	       (font-pov-directive-face "red" nil t nil nil)))))
-;;      (t			; dark color background
-;;       (setq font-lock-face-attributes
-;; 	    (append 
-;; 	     font-lock-face-attributes
-;; 	     '((font-pov-varible-face "OliveDrab" nil t nil nil)
-;; 	       (font-pov-macro-name-face "OliveDrab" nil t nil nil)   ;; C.H.
-;; 	       (font-pov-keyword-face "grey60")                       ;; C.H.
-;; 	       (font-pov-number-face "OliveDrab" nil nil t nil)
-;; 	       ;; good are > LightSeaGreen, LightCoral, coral, orchid, orange
-;; 	       (font-pov-object-face "grey60")
-;; 	       (font-pov-directive-face "red" nil t nil nil))))))))
-;;  (t   ;; DROP ME
-;;   ;;; XEmacs < version 20.2
-;;   (make-face 'font-pov-variable-face "Face to use for PoV variables.")
-;;   (make-face 'font-pov-macro-name-face "Face to use for PoV macros.")      ;; C.H.
-;;   (make-face 'font-pov-keyword-face "Face to use for PoV keywords.")       ;; C.H.
-;;   (make-face 'font-pov-directive-face "Face to use for PoV directives.")
-;;   (make-face 'font-pov-number-face "Face to use for PoV numbers.")
-;;   (make-face 'font-pov-operator-face "Face to use for PoV operators.")
-;;   (make-face 'font-pov-csg-face "Face to use for PoV csg.")
-;;   (make-face 'font-pov-object-face "Face to use for PoV objects.")
 
-;;   (make-face-bold 'font-pov-object-face)
-  
-;;   ;; XEmacs uses a tag-list thingy to determine if we are using color
-;;   ;;  or mono (and I assume a dark background).
-;;   (set-face-foreground 'font-pov-object-face "green4" 'global nil 'append)
-;;   (set-face-foreground 'font-pov-number-face "green" 'global nil 'append)
-;;   (set-face-foreground 'font-pov-variable-face "red" 'global nil 'append)
-;;   (set-face-foreground 'font-pov-macro-name-face "blue2" 'global nil 'append)   ;; C.H.
-;;   (set-face-foreground 'font-pov-keyword-face "blue4" 'global nil 'append)      ;; C.H.
-;;   )
-;; )
-;; END OBSOLETE CODE
 
 
 (font-pov-setup) ;; Setup and register the fonts...
@@ -1142,7 +1074,7 @@ font-pov-keyword-face"
 ;; -- end C.H --
 
 (defun pov-mode nil
-  "Major mode for editing PoV files. (Version 2.16)
+  "Major mode for editing PoV files. (Version 2.18)
 
    In this mode, TAB and \\[indent-region] attempt to indent code
 based on the position of {} pairs and #-type directives.  The variable
@@ -2245,36 +2177,50 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 	     )))))
 
 ; *************
-; *** Imenu ***
+; *** Imenu ***  ;; need a fix ;; priority:critical
 ; *************
 (defun pov-helper-imenu-setup ()
   (interactive)
-  (require `imenu) ;; Make an index for imenu
-  (make-local-variable imenu-create-index-function)
-  (setq imenu-create-index-function `pov-helper-imenu-index)
-  (imenu-add-to-menubar "PoV")
-)
+  (require 'imenu) ;; Make an index for imenu  
+  (if pov-imenu-only-macros
+  (setq imenu-generic-expression 
+	'((nil "^#macro\\s-+\\([A-Za-z_][A-Za-z_0-9]*\\)" 1)))
+  ;;I assume that #macro and #declare start at the beginning of the line,
+  ;;without spaces. Otherwise could be recursion loops.
+  (setq imenu-generic-expression 
+	'((nil "^#\\(declare\\|macro\\)\\s-+\\([A-Za-z_][A-Za-z_0-9]*\\)" 2)
+	  (nil "^\\(camera\\)" 1) ;; there is only one camera, isn't it?
+	  ("Lights" "^\\(light_source\\)" 1)
+	  ("Include" "^#include\\s-+\"\\([A-Za-z0-9_]+\\)\\.inc\"" 1))))
+  ;; ;; rewritten MP ;; this solves a critical bug that messed 
+  ;; ;;   up the buffers index and adds some features
+;;  (make-local-variable imenu-create-index-function)
+;;  (setq imenu-create-index-function `pov-helper-imenu-index)
+  (imenu-add-to-menubar "PoV"))
 
-;; C.H.: to avoid flooding the function menu set 'pov-imenu-only-macros'
-(if pov-imenu-only-macros
-    (defvar imenu-pov-declare-regexp
-      (concat
-       "\\(#macro\\)"          ; Begin declaration
-       "\\s-+"				; Whitespace
-       "\\([A-Za-z_][A-Za-z_0-9]*\\)"	; Name
-       ";?"                               ; A possible ; at the end
-       )
-      "Expression to recognize POV declares."
-      )
-  (defvar imenu-pov-declare-regexp
-    (concat
-     "#\\(declare\\|macro\\)"          ; Begin declaration
-     "\\s-+"				; Whitespace
-     "\\([A-Za-z_][A-Za-z_0-9]*\\)"	; Name
-     )
-    "Expression to recognize POV declares."
-    )
-  )
+
+;;; THE FOLLOWING LINES WERE COMMENTED OUT BECAUSE MESSED UP ALL
+;;  THIS BUG WAS *CRITICAL*
+;; ;; C.H.: to avoid flooding the function menu set 'pov-imenu-only-macros'
+;; (if pov-imenu-only-macros
+;;     (defvar imenu-pov-declare-regexp
+;;       (concat
+;;        "\\(#macro\\)"          ; Begin declaration
+;;        "\\s-+"				; Whitespace
+;;        "\\([A-Za-z_][A-Za-z_0-9]*\\)"	; Name
+;;        ";?"                               ; A possible ; at the end
+;;        )
+;;       "Expression to recognize POV declares."
+;;       )
+;;   (defvar imenu-pov-declare-regexp
+;;     (concat
+;;      "#\\(declare\\|macro\\)"          ; Begin declaration
+;;      "\\s-+"				; Whitespace
+;;      "\\([A-Za-z_][A-Za-z_0-9]*\\)"	; Name
+;;      )
+;;     "Expression to recognize POV declares."
+;;     )
+;;   )
 
 ;(defvar imenu-pov-declare-regexp
 ;  (concat
@@ -2282,45 +2228,47 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 ;   "\\([a-zA-Z0-9_*]+\\)+[ \t]?"
 ;   ))
 
-(defun search-list (data-to-find list)
-  (princ data-to-find)
-  (message "")
-  (princ list)
-  (message "----")
-  (cond ((null list)       nil)
-	((null (car list)) (equal (car (car list)) (car data-to-find)))
-	(t                 (if (equal (car (car list)) (car data-to-find))
-			       (setcar list (cons (car data-to-find)
-						  (cons (car list) data-to-find)))
-			     (search-list data-to-find (cdr list))
-			     ))
-	)
-  )
+;; (defun search-list (data-to-find list)
+;;   (princ data-to-find)
+;;   (message "")
+;;   (princ list)
+;;   (message "----")
+;;   (cond ((null list)       nil)
+;; 	((null (car list)) (equal (car (car list)) (car data-to-find)))
+;; 	(t                 (if (equal (car (car list)) (car data-to-find))
+;; 			       (setcar list (cons (car data-to-find)
+;; 						  (cons (car list) data-to-find)))
+;; 			     (search-list data-to-find (cdr list))
+;;                       ;; probably here was the problem: recursion! MP
+;; 			     ))
+;; 	)
+;;   )
 
-(defun pov-helper-imenu-index ()
-  "Return an table of contents for an html buffer for use with Imenu."
-  ;(message "pov-helper-imenu-index")
-  (let ((space ?\ ) ; a char
-	(toc-index '())
-	toc-str)
-    (goto-char (point-min))
-    (imenu-progress-message prev-pos 0)
-    ;; Search
-    (save-match-data
-      (while (re-search-forward imenu-pov-declare-regexp nil t)
-	;(imenu-progress-message prev-pos)
-	(setq toc-str (match-string 2))
-	(beginning-of-line)
-	(unless (search-list (cons toc-str (point)) toc-index)
-	  (setq toc-index (cons (cons toc-str (point)) toc-index)))
-	(end-of-line)))
-    ;(imenu-progress-message prev-pos 100)
-    ;(if toc-index
-    ;(princ (nreverse toc-index)))))
-    (nreverse toc-index)))
+;; (defun pov-helper-imenu-index ()
+;;   "Return an table of contents for an html buffer for use with Imenu."
+;;   ;(message "pov-helper-imenu-index")
+;;   (let ((space ?\ ) ; a char
+;; 	(toc-index '())
+;; 	toc-str)
+;;     (goto-char (point-min))
+;;  ;;   (imenu-progress-message prev-pos 0) ;; commented out
+;;     ;; Search
+;;     (save-match-data
+;;       (while (re-search-forward imenu-pov-declare-regexp nil t)
+;; 	;(imenu-progress-message prev-pos)
+;; 	(setq toc-str (match-string 2))
+;; 	(beginning-of-line)
+;; 	(unless (search-list (cons toc-str (point)) toc-index)
+;; ;; I suppouse here was the problem
+;; 	  (setq toc-index (cons (cons toc-str (point)) toc-index)))
+;; 	(end-of-line)))
+;;     ;(imenu-progress-message prev-pos 100)
+;;     ;(if toc-index
+;;     ;(princ (nreverse toc-index)))))
+;;     (nreverse toc-index)))
 
 ;;; Renderdialog
-(defun pov-render-dialog ()
+(defun pov-render-dialog ()  ;; xemacs only
   "Opens a dialog to let you set the rending options"
   (interactive)
   (popup-dialog-box pov-render-dialog-desc)
