@@ -31,7 +31,7 @@ echo
 
 #I assume the HTML documentation is here:
 povdocs=$(echo $(dirname $(which povray)) | sed -e "s|bin|share/doc/povray-3.6/html|")
-echo "Where is the HTML documentation directory?"
+echo "Where is the POV-Ray HTML documentation directory?"
 echo -n "Should be $povdocs >>> "
 read povdocs
 if [ "$povdocs" == "" ]; then

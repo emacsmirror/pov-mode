@@ -4,7 +4,7 @@
 ;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
 ;; Modified: 16 Feb 2008
-;; Version: 2.14
+;; Version: 2.15
 ;; Keywords: pov, povray
 ;;
 ;;
@@ -195,15 +195,14 @@
 ;; 2008-02-10
 ;;    Really fix the defcustom menu for faces
 ;;    Upgraded to GPL 3
-;;    Provides a setup.sh script that fix some vars and update the .emacs
+;;    Provides a setup.sh script that fixes some vars
 ;; 2008-02-11
 ;;    Added internal view for GNU Emacs 22
 ;; 2008-02-13
 ;;    Fixed faces to be consistent with other languages
 ;;     (as much as possible). If you don't like, customize it via
-;;     M-x customize-group pov. Beware! Doesn't tested on Xemacs 
+;;     M-x customize-group pov. Beware! It has not been tested on Xemacs 
 ;;     nor earlier versions of GNU emacs
-
 ;; 2008-02-16 Version 2.14 
 ;;    Rewrited from scratch the pov-keyword-help function
 ;;    and commented out the old one, because the povuser.txt no more
@@ -212,9 +211,13 @@
 ;;    choosen in the M-x customize-group pov menu. However, don't
 ;;    modify the name of directory and file names if this feature
 ;;    works. You'll mess up things. This has been tested on the
-;;    documentation for pov-ray 3.61 (official binaries for linux).
+;;    documentation for pov-ray 3.6 (official binaries for linux).
 ;;    Your documentation (for Mac or for previous or later version
 ;;    of PoV-ray) may be somewhere else. Please let me know.
+;; 2008-02-17 Version 2.15
+;;    Created the tool-bar for GNU Emacs 22.1 (and maybe for previous releases
+;;    If you are running GNU Emacs < 22 and the toolbar works (with 2 icons, 
+;;    for view and for rendering, let me know)
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -242,7 +245,7 @@
 ;; * Make hooks for menus, so they are userselectable
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO list (mp)
-;; * fix the tool-bar for GNU Emacs 22
+;; * portability
 ;; * upgrade to PoV-ray 3.6
 ;; *fix the bug with: Mark set
 ;;  imenu--truncate-items: Wrong type argument: listp, 635
@@ -305,7 +308,7 @@
 (require 'font-lock) ;;[TODO] Not nice to reqire it, the user should
                      ;;       have a choise...
 
-(defconst pov-mode-version '2.14   ;; this is the only occurence
+(defconst pov-mode-version '2.15   ;; this is the only occurence
   "The povray mode version.")
 
 (defvar pov-tab-width 8)
@@ -337,17 +340,12 @@
 ;(defvar font-pov-string-face nil
 ;  "Face to use for strings.  This is set by font-PoV.")
 
-(defvar font-pov-macro-name-face nil
-  "Face to use for strings.  This is set by font-PoV.")
+;; (defvar font-pov-macro-name-face nil
+;;   "Face to use for strings.  This is set by font-PoV.")
 
 ;;(defvar font-pov-keyword-face nil
 ;;  "Face to use for misc keywords.  This is set by font-PoV.")
 ;;
-(defvar pov-insertmenu-location nil
-  "Location of the InsertMenu directory structure.")
-
-(defvar pov-icons-location nil
-  "Location of the menubaricons.")
 
 ; Seems like Emacs lacks these functions (locate-data-[directory|file])...
 
@@ -437,8 +435,17 @@
 	:type 'string
 	:group 'pov
 	)
+      (defcustom pov-icons-location "EMACSLISPLIBRARY/"
+	"*Location of the menubaricons."
+	:type 'directory
+	:group 'pov
+	)
 
-
+      (defcustom pov-insertmenu-location "EMACSLISPLIBRARY/InsertMenu/"
+	"*Path to the InsertMenu directory"
+	:type 'directory
+	:group 'pov
+	)
       (defcustom pov-external-browser "firefox"
 	"*The name of the command for the external browser"
 	:type 'string 
@@ -460,10 +467,13 @@
 					    povray-command pov-run-low
 					    '())
 				      (list "Medium quality render"
-					    povray-command pov-run-highest
+					    povray-command pov-run-mid
 					    '())
 				      (list "High quality render"
 					    povray-command pov-run-high
+					    '())
+				      (list "Highest quality render"
+					    povray-command pov-run-highest
 					    '())
 				      (list pov-external-view
 					    pov-external-viewer-command
@@ -497,7 +507,7 @@
 	)
       
       (defcustom pov-documentation-keyword-index "s_97.html"
-	"*This file (tested on povlinux-3.61) should contain the index for the keywords (section 3)"
+	"*This file (tested on povlinux-3.6) should contain the index for the keywords (section 3)"
 	:type 'file
 	:group 'pov
 	)
@@ -581,6 +591,13 @@ font-pov-object-face"
 font-pov-variable-face"
 	:type 'face
 	:group 'pov)
+      
+      (defcustom font-pov-macro-name-face 'default
+	"*Face to use for #macro names. Just black and white. Try also
+font-pov-macro-name-face"
+	:type 'face
+	:group 'pov
+	)
 
       (defcustom font-pov-operator-face  'default 
 	"*Face to use for PoV operators. Just black and white. You should try
@@ -589,20 +606,6 @@ syntax coloring "
 	:type 'face
 	:group 'pov)
 
-;      (defcustom font-pov-string-face t
-;	"*What color does strings have"
-;	:type 'face
-;	:group 'pov)
-
-;      (defcustom font-pov-texture-face t
-;	"*What color does textures have"
-;	:type 'face
-;	:group 'pov)
-
-;      (defcustom font-pov-object-modifier-face t
-;	"*What color does object modifiers have"
- ;	:type 'face
-;	:group 'pov)
 
       (defcustom font-pov-directive-face 'font-lock-preprocessor-face ; OK
 	"*What color does (#)-directives have. Also try 
@@ -623,6 +626,20 @@ font-pov-keyword-face"
 	:group 'pov)
       )
 )
+;      (defcustom font-pov-string-face t
+;	"*What color does strings have"
+;	:type 'face
+;	:group 'pov)
+
+;      (defcustom font-pov-texture-face t
+;	"*What color does textures have"
+;	:type 'face
+;	:group 'pov)
+
+;      (defcustom font-pov-object-modifier-face t
+;	"*What color does object modifiers have"
+ ;	:type 'face
+;	:group 'pov)
 
 
 ;; (if font-pov-standard-colors
@@ -643,9 +660,8 @@ font-pov-keyword-face"
 ;; 					     (cons (file-name-directory (locate-library "pov-mode")) 
 ;; 						   (if font-pov-is-Emacs data-directory data-directory-list)))))
 
-;;FIX ME
 
-(setq pov-icons-location "EMACSLISPLIBRARY/")
+
 
 
 ;; Lets play with the Toolbar, we want to add buttons for 
@@ -682,7 +698,7 @@ font-pov-keyword-face"
 	   [toolbar-look-icon
 	    (if pov-default-view-internal
 		(pov-display-image-xemacs pov-image-file)
-	      (pov-display-image-externally pov-image-file nil))
+	      (pov-display-image-externally pov-image-file nil))o
 	    t "Show the rendered file"]
 	   ))
        (defvar pov-render-dialog-desc
@@ -1113,7 +1129,7 @@ font-pov-keyword-face"
 ;; -- end C.H --
 
 (defun pov-mode nil
-  "Major mode for editing PoV files. (Version 2.14)
+  "Major mode for editing PoV files. (Version 2.15)
 
    In this mode, TAB and \\[indent-region] attempt to indent code
 based on the position of {} pairs and #-type directives.  The variable
@@ -1280,6 +1296,15 @@ enclosing `{' or `begin' keyword."
 		       (1+ (point)))
 		   (error nil)))
       (pov-find-begin open))))
+(defsubst pov-re-search-backward (REGEXP BOUND NOERROR)
+  "Like re-search-backward, but skips over matches in comments or strings"
+  (set-match-data '(nil nil))
+  (while (and
+	  (re-search-backward REGEXP BOUND NOERROR)
+	  (pov-skip-backward-comment-or-string)
+	  (not (set-match-data '(nil nil))))
+    ())
+  (match-end 0))
 
 (defun pov-find-begin (start)
   "Search backwards from point to START for enclosing `begin' and returns the
@@ -1326,15 +1351,15 @@ character number of the character following `begin' or START if not found."
 	 (error t))
        (not (pov-find-begin nil))))
 
-(defsubst pov-re-search-backward (REGEXP BOUND NOERROR)
-  "Like re-search-backward, but skips over matches in comments or strings"
-  (set-match-data '(nil nil))
-  (while (and
-	  (re-search-backward REGEXP BOUND NOERROR)
-	  (pov-skip-backward-comment-or-string)
-	  (not (set-match-data '(nil nil))))
-    ())
-  (match-end 0))
+;; (defsubst pov-re-search-backward (REGEXP BOUND NOERROR)
+;;   "Like re-search-backward, but skips over matches in comments or strings"
+;;   (set-match-data '(nil nil))
+;;   (while (and
+;; 	  (re-search-backward REGEXP BOUND NOERROR)
+;; 	  (pov-skip-backward-comment-or-string)
+;; 	  (not (set-match-data '(nil nil))))
+;;     ())
+;;   (match-end 0))
 
 (defun pov-autoindent-endblock nil
   "Hack to automatically reindent end, break, and else."
@@ -1748,10 +1773,12 @@ character number of the character following `begin' or START if not found."
       (define-key pov-mode-map "}" 'pov-close)
       (define-key pov-mode-map "\t" 'pov-tab)
       (define-key pov-mode-map "\r" 'pov-newline)
-      (define-key pov-mode-map "\C-c\C-c" 'pov-command-query) ;AS
-      (define-key pov-mode-map [(shift f1)] 'pov-keyword-help) ;AS
+      (define-key pov-mode-map "\C-c\C-c" 'pov-command-query);AS
+;;      (define-key pov-mode-map [(shift f1)] 'pov-keyword-help) ;AS ; this sucks MP
+      (define-key pov-mode-map "\C-c\C-h" 'pov-keyword-help) 
       (define-key pov-mode-map "\C-c\C-l" 'pov-show-render-output) ;AS
-      (define-key pov-mode-map "\C-ci" 'pov-open-include-file)
+;;      (define-key pov-mode-map "\C-ci" 'pov-open-include-file) ; Isn't this reserved? MP
+      (define-key pov-mode-map "\C-c\C-i" 'pov-open-include-file) ; Isn't this reserved? MP
       (define-key pov-mode-map "\M-\t" 'pov-complete-word)))
 
 ;; Hack to redindent end/else/break
@@ -1760,25 +1787,38 @@ character number of the character following `begin' or START if not found."
       (define-key pov-mode-map "e" 'pov-autoindent-endblock)
       (define-key pov-mode-map "k" 'pov-autoindent-endblock)
       (define-key pov-mode-map "d" 'pov-autoindent-endblock)))
+(defun tool-bar-command-render nil
+  "Wrapper for the tool-bar"
+  (interactive)
+  (pov-render-file "Render" (buffer-file-name) nil))
+(defun tool-bar-command-view nil
+  "Wrapper for the tool-bar"
+  (interactive)
+  (if pov-default-view-internal
+      (pov-display-image-xemacs pov-image-file)
+    (pov-display-image-externally pov-image-file nil)))
+;; tool-bar entries for GNU Emacs
+(if font-pov-is-Emacs
+    (progn 
+      (setq viewicon (concat pov-icons-location "povview.xpm")
+	    rendericon (concat pov-icons-location "povrender.xpm"))
+      (define-key pov-mode-map [tool-bar  render] 
+	;;      '(menu-item "Render" pov-render-dialog
+	`(menu-item "Render this file using the default quality" tool-bar-command-render
+		    :image ,(create-image rendericon )))
+      ;;  :type xpm 
+      ;; :file "EMACSLISPLIBRARY/povrender.xpm")))
+      (define-key pov-mode-map [tool-bar view] 
+	`(menu-item "Preview"   tool-bar-command-view
+		    :image ,(create-image viewicon)))))
+;;  :type xpm  ;; these two paths need a fix. (concat etc. etc.) doesn't work. Why?
+;; 			  :file "EMACSLISPLIBRARY/povview.xpm" )))))
 
-; ***********************
-; *** povkeyword help *** We are in troubles, because the documentation
-; *********************** is no longer in text format, but in html. 
-;; I'd like to dump all in a text file, but the documentation is not
-;; under GLP. So, what shall we do? Simply echo: "find yourself the
-;; doc?". Or open a external browser, but where? there are more
-;; then 150 files. Where is the right one, without violating the
-;; license? MP
 
+;; ***********************
+;; *** povkeyword help *** 
+;; *********************** 
 
-;; OK, let's try 
-;; (if (string-match "^ *Output file: \\(.*\\), [0-9]+ bpp .+$"
-;; 	string)
-;; 	    (setq image-file (match-string 1 string)))
-
-
-
-; (defun pov-keyword-rec-helper 
 
 
 (defun pov-keyword-help nil
@@ -1817,10 +1857,8 @@ default is word at point"
 		     	   ;	     (message "DEBUG %s" (concat "file://" 
           (browse-url-generic (concat "file://" 
 				       pov-documentation-directory  
-				       target-file))
-	  (kill-buffer buffer))
-	(progn (kill-buffer buffer)
-	       (set-buffer buffer-index)
+				       target-file)))
+	(progn (set-buffer buffer-index)
 	       (setq buffer-read-only t)
 	       (widen)
 	       (goto-char (point-min))
@@ -1831,84 +1869,12 @@ default is word at point"
 			 (browse-url-generic (concat "file://" 
 						     pov-documentation-directory  
 						     target-file)))
-		 (error (concat "Couldn't find keyword: " kw
-				", maybe you misspelled it" )))
-		 (kill-buffer buffer-index))))))
+		 (message "Couldn't find keyword: %s, maybe you misspelled it" kw))))
+      (kill-buffer buffer)
+      (kill-buffer buffer-index))))
 
 
 
-;; (defun pov-keyword-help nil
-;;   (interactive)
-;;   "look up the appropriate place for keyword in the POV documentation using
-;; an external browser. keyword can be entered and autocompleteted, default is word at point"
-;;   (let* ((default (current-word))
-;; 	 (input (completing-read
-;; 		 (format "lookup keyword (default %s): " default)
-;; 		 pov-keyword-completion-alist))
-;; 	 (kw (if (equal input "")
-;; 		 default
-;; 	       input)))
-;;     (get-buffer-create pov-doc-buffer-name)
-;;     (switch-to-buffer-other-window pov-doc-buffer-name)
-;;     (find-file-read-only (concat pov-home-dir pov-help-file))
-;;     ;;Try to look up a keyword in the povray-documentation:
-;;     ;;uses a heuristic to find the appropriate entry
-;;     ;;since the povray-docu is formatted rather arbitrarily
-;;     ;;try:
-;;     (cond
-;;      ((progn
-;;        (goto-char (point-min))
-;;        (search-forward-regexp
-;; 	;;first: the language description is in section four, so look for:
-;; 	(concat
-;; 	 "^4\\.[0-9]+\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?[ 	]+"
-;; 	 ;;change light_source -> light_source OR light source (that's
-;; 	 ;;the usual spelling in the headings)
-;; 	 ;;(wouldn't a working replace-in-string be nice, even for
-;; 	 ;;FSF-emacs ???)
-;; 	 (if (string-match "\\(.*\\)_\\(.*\\)" kw)
-;; 	     (concat (match-string 1 kw)
-;; 		     "[_ 	]"
-;; 		     (match-string 2 kw)
-;; 		     ".*\\>$")
-;; 	   kw))
-;; 	nil t))			;return nil if not found
-;;        ;; make the line of the match the top line of screen XXX
-;;        (recenter 0))
-
-;;      ;;second: if that didn't work:
-;;      ;;same again with a relaxed regexp that allows more matches:
-;;      ((progn
-;; 	(goto-char (point-min))
-;; 	(search-forward-regexp
-;; 	 (concat
-;; 	  "^4\\.[0-9]+\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?[ 	]+.*"
-;; 	  (if (string-match "\\(.*\\)_\\(.*\\)" kw)
-;; 	      (concat
-;; 	       (match-string 1 kw)
-;; 	       "[_ 	]"
-;; 	       (match-string 2 kw))
-;; 	    kw))
-;; 	 nil t))
-;;       (recenter 0))
-;;      ;;third try:
-;;      ;;syntactic definitions appear like this: "KEYWORD:"
-;;      ((progn
-;; 	(goto-char (point-min))
-;; 	(search-forward-regexp
-;; 	 (concat "\\<" (upcase kw) ":")
-;; 	 nil t)))
-;;       ;;last try: simply search keyword from beginning of buffer
-;;      ((progn
-;;        (goto-char (point-min))
-;;        (while (y-or-n-p (concat "Continue to look for " kw))
-;; 	 (search-forward-regexp
-;; 	  (concat  "\\<" kw  "\\>")
-;; 	  nil t))))
-;;      ;;OK, that's it: we failed
-;;      (t (error (concat "Couldn't find keyword: " kw
-;; 		      ", maybe you misspelled it?"))))
-;;     ))
 
 ; **********************************
 ; *** Open standard include file ***
@@ -2171,6 +2137,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 	    (read-file-name "Which image file should I display? ")))
   (let ((buffer (get-buffer-create
 		 (format "*Povray View %s*" file))))
+;; (format "*Povray View %s" "prova.png")
     (save-excursion
       (set-buffer buffer)
       (toggle-read-only -1)
@@ -2184,11 +2151,15 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 	       (or (get-frame-for-buffer (current-buffer)) ;; emacs doesn't have get-frame-for-buffer
 		   (get-frame-for-buffer-make-new-frame (current-buffer)))))
 	    ((and  font-pov-is-Emacs22 (image-type-available-p 'png)) ;; MP
-	     (make-frame)
-	     (make-frame-visible)
+	  ;;	   (get-buffer-create buffer)
+	 ;;    (make-frame-visible)
+	     ;; (make-frame-visible)
+	     (clear-image-cache) ;; really important!
 	     (insert-image (create-image file) )
-	     (insert "              ") ;; avoid blinking cursor
-	     (forward-char  (point-max))
+	     (insert "              \n\nType C-x b to go back!") ;; avoid blinking cursor
+	     (goto-char  (- (point-max) 1))
+	     (switch-to-buffer (current-buffer))
+
 	     )))))
 
 ; *************
@@ -2274,7 +2245,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
   )
 
 ;; Let's try to find where the InsertMenu is located...
-(setq pov-insertmenu-location "EMACSLISPLIBRARY/InsertMenu/")
+
 ;;       (locate-data-directory "InsertMenu" (cons (file-name-directory
 ;; 						 (locate-library "pov-mode"))
 ;; 						(if font-pov-is-Emacs
