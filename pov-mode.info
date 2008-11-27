@@ -6,7 +6,7 @@ START-INFO-DIR-ENTRY
 * Pov-mode: (pov-mode.info). A major mode for editing POV-Ray scene
 END-INFO-DIR-ENTRY
 
-   This is the manual for pov-mode.el (version 3.2, 24 May 2008),
+   This is the manual for pov-mode.el (version 3.2, 26 May 2008),
 
    Copyright (C) 2008 Marco Pessotto
 
@@ -24,7 +24,7 @@ File: pov-mode.info,  Node: Top,  Next: Installation,  Prev: (dir),  Up: (dir)
 The pov-mode.el manual
 **********************
 
-This is the manual for pov-mode.el (version 3.2, 24 May 2008),
+This is the manual for pov-mode.el (version 3.2, 26 May 2008),
 
    Copyright (C) 2008 Marco Pessotto
 
@@ -147,12 +147,10 @@ File: pov-mode.info,  Node: InsertMenu,  Next: Include and docs,  Prev: Compilat
 1.4 Get the InsertMenu tree (optional)
 ======================================
 
-The nice feature of the `InsertMenu' is not provided with the
-`pov-mode' tarball for copyright reasons. The `InsertMenu' directory is
-shipped as a separate package, because is covered by the POV-Ray
-license and may be used by anyone eligible to use POV-Ray according to
-this license. Even if POV-Ray is not considered strictly free software,
-it cannot be considered proprietary software.
+`pov-mode' provides a GUI menu `InsertMenu' with over 200 templates
+files (inc files, and templates for color, lighting, shape,
+transformation ...etc). However, these templates are not bundled for
+licening issues.
 
    I suggest you to unpack the tarball in the same directory of
 `pov-mode.el', so you don't need anything else.
@@ -180,7 +178,8 @@ File: pov-mode.info,  Node: Include and docs,  Prev: InsertMenu,  Up: Installati
 To use `pov-mode.el' at its full power you need to tell it where can
 find the includes and the documentation of POV-Ray. You can do this as
 you have done for the `pov-insertmenu-location', by writing the code
-yourself or by using `customize'. The variable are:
+yourself or by using `customize-group <RET> pov <RET>'. The variable
+are:
 
 `pov-include-dir'
      by default set to `"/usr/local/share/povray-3.6/include"', and
@@ -252,9 +251,10 @@ to get it right.
 editing large files with a lot of declarations and macros, or to jump
 fast to the camera.
 
-   It's safe to use but can be disable setting `pov-imenu-only-macros'
-to `t' (e.g. via `customize'), which disable everything but the macros;
-`pov-imenu-in-menu' to `nil' will disable this feature at all.
+   It's safe to use but can be disable by setting
+`pov-imenu-only-macros' to `t' (e.g. via `customize-group <RET> pov
+<RET>'), which disable everything but the macros; `pov-imenu-in-menu' to
+`nil' will disable this feature at all.
 
    It use the library `imenu.el'.
 
@@ -266,7 +266,7 @@ File: pov-mode.info,  Node: Insert menu,  Next: Render menu,  Prev: Imenu,  Up: 
 
 The `Insert' menu exists only if you installed the `InsertMenu' tree
 somewhere. *Note InsertMenu::. It contains a large collection of
-shapes, object, whole scenes templates, etc. Just click to insert the
+shapes, objects, whole scenes templates, etc. Just click to insert the
 object.
 
    I'll provide you just a pair of sample files. However you can use
@@ -276,7 +276,7 @@ file in the same way other files are named, and use a different number.
    For example, suppose `myscene_template.pov' is your template file,
 and you want to add it under the menu "Insert:Scene Template".  Rename
 your file to `01 - my scene.txt' (please note the spaces and the
-digit), then place it in the directory `InsertMenu/00 - Scene
+digits), then place it in the directory `InsertMenu/00 - Scene
 templates', then restart Emacs. Then, your scene template file will
 appear as the first item in the menu `Insert:Scene Template'.
 
@@ -286,7 +286,7 @@ space name.txt' for files with templates, code, and so on. Just look at
 the sample files. I suggest to remove them, get the
 `povray-imenu-3.6.tar.gz' (by Christoph Hormann and others) at
 `http://www.imagico.de/imenu/povray-imenu-3.6.tar.gz' or
-`http://xahlee.org/emacs/povray-imenu-3.6.tar.gz', or build your on
+`http://xahlee.org/emacs/povray-imenu-3.6.tar.gz', or build your own
 templates.
 
 
@@ -302,9 +302,16 @@ so you can go on editing while the rendering is in progress.
 
    The arguments passed to `povray' are fully customizable and have an
 incremental quality. So these command are self-explanatory.  Use
-`customize' to change the value of the quality, e.g. adding switches,
-please remember to preserve the `%s', which will be substituted by the
-file name. The menu-bar items are also bound to a keystroke:
+`customize-group <RET> pov <RET>' to change the value of the quality,
+e.g. adding switches, please remember to preserve the `%s', which will
+be substituted by the file name. The menu-bar items are also bound to a
+keystroke:
+
+`C-c C-c r'
+     (`M-x pov-tool-bar-command-render')
+
+     Run `povray' without argument (default quality depending on your
+     settings.
 
 `C-c C-c 1'
      (`M-x pov-menu-render-test')
@@ -345,7 +352,7 @@ external (using an external command).
      (`pov-menu-external-viewer')
 
      Use the program set by `Pov External Viewer Command' in
-     `customize' (`pov-external-viewer-command')
+     `customize-group <RET> pov <RET>' (`pov-external-viewer-command')
 
 `C-c C-c v'
      (`M-x pov-menu-internal-viewer')
@@ -383,7 +390,9 @@ bound to a keystroke:
 
 
    The following items are not bound because are command shared with
-other modes, so someone would like to bound it globally.
+other modes, so someone would like to bound it globally. You can use
+the `M-x comment-dwim' to comment or uncomment region). Usually is
+bound to `M-;'.
 
 `Comment out region'
      is self-explaining and run the standard `M-x comment-region'
@@ -442,7 +451,7 @@ browser is set by `browse-url', so it depends on its customization.
 distribution of POV-Ray. So, if you have POV-Ray installed somewhere
 else you have to set these variables to a valid location.
 
-   Please use `customize' to set these variables.
+   Please use `customize-group <RET> pov <RET>' to set these variables.
 
 
 File: pov-mode.info,  Node: include-file,  Next: universal,  Prev: keyword-help,  Up: tools
@@ -923,19 +932,19 @@ Node: Installation1798
 Node: load-path2605
 Node: Compilation3653
 Node: InsertMenu3991
-Node: Include and docs5274
-Node: Getting started5985
-Node: The menu-bar7209
-Node: Imenu7446
-Node: Insert menu8202
-Node: Render menu9638
-Node: The View Menu10812
-Node: Misc menu11800
-Node: tools12507
-Node: keyword-help12761
-Node: include-file14110
-Node: universal14730
-Node: Copying This Manual15274
-Node: GNU Free Documentation License15491
+Node: Include and docs5100
+Node: Getting started5833
+Node: The menu-bar7057
+Node: Imenu7294
+Node: Insert menu8075
+Node: Render menu9514
+Node: The View Menu10850
+Node: Misc menu11860
+Node: tools12662
+Node: keyword-help12916
+Node: include-file14287
+Node: universal14907
+Node: Copying This Manual15451
+Node: GNU Free Documentation License15668
 
 End Tag Table
