@@ -3,8 +3,8 @@
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
 ;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
-;; Modified: 28 Feb 2008
-;; Version: 2.19
+;; Modified: 05 March 2008
+;; Version: 2.20
 ;; Keywords: pov, povray
 ;;
 ;;
@@ -42,6 +42,8 @@
 ;; It should work for either Xemacs or FSF Emacs, versions >= 20;
 ;; At the present, pov-mode have internal display of picture with Xemacs
 ;; and GNU Emacs 22
+;; 
+;;; INSTALLATION
 ;;
 ;; To automatically load pov-mode every time Emacs starts up, put the
 ;; following line into your .emacs file:
@@ -50,16 +52,46 @@
 ;;
 ;; or better: 
 ;;
-;;         (autoload 'pov-mode "/path/to/pov-mode.el" ;; please modify this
+;;         (autoload 'pov-mode "pov-mode"
 ;;            "PoVray scene file mode" t)
 ;;         (setq auto-mode-alist
-;;	      (append '(("\\.pov$" . pov-mode) 
-;;		  ("\\.inc$" . pov-mode))
+;;	      (append '(("\\.pov\\'" . pov-mode) 
+;;		        ("\\.inc\\'" . pov-mode))
 ;;                auto-mode-alist))
 ;;
-;; Of course pov-mode has to be somewhere in your load-path for emacs
-;; to find it (Use C-h v load-path to see which directories are in the
+;; The file pov-mode.el and the InsertMenu gerarchy *MUST* be in your
+;; load-path. (Use C-h v load-path to see which directories are in the
 ;; load-path).
+;; This package contains 2 icons and over 200 example
+;; scenes, so I'd suggest you to add the whole content of the tarball
+;; to the load-path in your .emacs. Example:
+;;
+;;    (setq load-path (cons "/path/to/pov-mode/pov-mode-mp-2.20/"
+;;                  load-path))
+;;
+;; Once you have add the content of the tarball to the load path, and
+;; modified your .emacs, you can restart emacs. Try to open a new file
+;; named test.pov. pov-mode should start automagically. There's
+;; another step you must to do: adding the path to the povray'
+;; documentation.
+;;
+;; Adding the path to the documentation is very simple: once the pov-mode has
+;; been loaded, go to the customize menu, typing 
+;;
+;;    M-x customize-group RET pov RET
+;; 
+;; you *must* set these two variables:
+;;
+;; Pov Include Dir
+;; Pov Documentation Directory
+;;
+;; The default is the default installation path of the official povray
+;; binary distribution as root. You may have installed povray
+;; somewhere else, so fix it! Usually you should change only the
+;; prefix /usr/local to your installation PREFIX
+;; After this step you *must* push the botton "Save for Future
+;; Sessions" and restart emacs. That's all!
+;; 
 ;;
 ;; NOTE: To achieve any sort of reasonable performance, you should
 ;;   byte-compile this package.  In emacs, type M-x byte-compile-file
@@ -258,7 +290,17 @@
 ;;     search fails, it use the basename of current buffer appending 
 ;;     the default extension (png for unix, bmp for windoze).
 ;;    Added a lot of keybindings for rendering and viewers.
-;;    
+;; 2008-03-01 Version 2.20
+;;    Fixed a bug in the killing of processes. Now it use
+;;     delete-process, no more kill-process, that just send a kill -9 and
+;;     doesn't run the sentinel.
+;;    Got rid of the shell script setup.sh. Now pov-mode can find the
+;;     insert-menu without problems. This remains available for user's
+;;     customization. The path to pov-ray must be set by the user. However
+;;     it uses the default installation path of the official povray release.
+;;    Rebound the keystrokes, so they are more comfortable and consistent.
+;;    Added a pair of missing keywords.
+;;    Added some documentation in the commentary
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -269,24 +311,10 @@
 ;;           Marco Pessotto
 ;;        marco.erika@gmail.com
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; TODO list:   ==OLD==
-;; * Vector operations (add <0, .5, 1> to every vector in region)
-;; * Clean up completion code
-;; * TAGS, to jump to #declared objects elsewhere in the code
-;;   MP: use the imenu instead
-;; * c-mode like electric parens (?)
-;; * clean up viewing and rendering code
-;; * should render or view be decided on filedates? If so, what
-;;     image file-name extensions should be checked?
-;;     I think PNG is default for UNIX, not sure. ;; It is
-;;     I could make this a customizeation option.
-;; * imenu support
-;;     started, but needs to be fixed so it handles nested menus.
-;;     DONE
-;; * Make sure the scopes are correct
-;; * Make hooks for menus, so they are userselectable
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; TODO LIST 
+;;  * rewrite the InsertMenu to avoid copyright problems
+;;  * enhance the documentation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 
@@ -397,7 +425,7 @@
 (require 'font-lock) 
 (require 'browse-url)
 
-(defconst pov-mode-version '2.19   ;; this is the only occurence
+(defconst pov-mode-version '2.20   ;; this is the only occurence
   "The povray mode version.")
 
 (defvar pov-tab-width)
@@ -473,6 +501,32 @@
 	"*Major mode for editing povray 3.X scence files <http://www.povray.org>."
 	:group 'languages)
 
+
+      (defcustom pov-include-dir "/usr/local/share/povray-3.6/include"
+	"*The directory in which the povray includefiles reside."
+	:type 'directory
+	:group 'pov)
+
+      (defcustom  pov-documentation-directory "/usr/local/share/doc/povray-3.6/html"
+	"*The directory that contains the html documentation of povray"
+	:type 'directory
+	:group 'pov
+	)
+      
+      (defcustom pov-documentation-index "idx.html"
+	"*Edit this only if the search-keyword function doesn't work!
+This file should contain the general index for *all* the documentation"
+	:type 'file
+	:group 'pov
+	)
+      
+      (defcustom pov-documentation-keyword-index "s_97.html"
+	"*Edit this only if the search-keyword function doesn't work!
+This file (tested on povlinux-3.6) should contain the index for the keywords (section 3)"
+	:type 'file
+	:group 'pov
+	)
+
       (defcustom povray-command "povray"
 	"*Command used to invoke the povray."
 	:type 'string
@@ -541,22 +595,29 @@ povray commands also. So beware!"
 	:type 'string
 	:group 'pov
 	)
-      (defcustom pov-icons-location "EMACSLISPLIBRARY/"
-	"*Location of the menubaricons."
+
+      (defcustom pov-icons-location (file-name-directory (locate-library "pov-mode"))
+	"*Location of the menubaricons. Change only if you want to try your own icons"
 	:type 'directory
 	:group 'pov
 	)
 
-      (defcustom pov-insertmenu-location "EMACSLISPLIBRARY/InsertMenu/"
-	"*Path to the InsertMenu directory"
+      (defcustom pov-insertmenu-location (file-name-as-directory 
+					  (concat 
+					   (file-name-directory 
+					    (locate-library "pov-mode")) "InsertMenu"))
+	"*Path to the InsertMenu directory. Change only if you want to try your own menu"
 	:type 'directory
 	:group 'pov
 	)
+
       (defvar pov-external-view
 	"External view")
       (defvar pov-internal-view
 	"Internal view")
-
+;; I think that this alist messes up things. Customize-group pov, and
+;; set to ``only current session'' doesn't work, because this alist
+;; won't be refreshed. So what? Should I rewrite all?
       (defvar pov-command-alist (list (list "Render"
 					    povray-command pov-run-default
 					    '()) ;history for the command
@@ -583,40 +644,7 @@ povray commands also. So beware!"
 					    (list pov-internal-view)
 					    '()))
 	"the commands to run")
-;;;;;;;; fix fix fix me ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      (defcustom pov-home-dir "SHARELIBSPOVRAY/"
-	"*The directory in which the povray files reside."
-	:type 'directory
-	:group 'pov)
 
-      (defcustom pov-include-dir "SHARELIBSPOVRAY/include/"
-	"*The directory in which the povray includefiles reside."
-	:type 'directory
-	:group 'pov)
-
-      (defcustom  pov-documentation-directory "POVRAYHTMLDOCDIR/"
-	"*The directory that contains the html documentation of povray"
-	:type 'directory
-	:group 'pov
-	)
-      
-      (defcustom pov-documentation-index "idx.html"
-	"This file sould contain the general index for *all* the documentation"
-	:type 'file
-	:group 'pov
-	)
-      
-      (defcustom pov-documentation-keyword-index "s_97.html"
-	"*This file (tested on povlinux-3.6) should contain the index for the keywords (section 3)"
-	:type 'file
-	:group 'pov
-	)
-
-      
-;;       (defcustom pov-help-file "povuser.txt"
-;; 	"*The name of the helpfile." ; but there is not a helpfile anymore
-;; 	:type  'file
-;; 	:group 'pov)
 
       (defcustom pov-associate-pov-and-inc-with-pov-mode-flag t
 	"*If t then files ending with .pov and .inc will automatically start
@@ -683,9 +711,7 @@ font-pov-object-face"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-variable-face 'font-lock-variable-name-face ; should
-								      ; be
-								      ; OK
+      (defcustom font-pov-variable-face 'font-lock-variable-name-face 
 	"*What color does variables (in declarations) have. Also try
 font-pov-variable-face"
 	:type 'face
@@ -706,7 +732,7 @@ syntax coloring "
 	:group 'pov)
 
 
-      (defcustom font-pov-directive-face 'font-lock-preprocessor-face ; OK
+      (defcustom font-pov-directive-face 'font-lock-preprocessor-face 
 	"*What color does (#)-directives have. Also try 
 font-pov-directive-face"
 	:type 'face
@@ -725,19 +751,6 @@ font-pov-keyword-face"
 	:group 'pov)
       ))
 	
-
-
-
-
-; Find where the menubar icons are placed, should be where pov-mode is...
-;; (setq pov-icons-location 
-;;       (file-name-directory (locate-data-file "povrender.xpm" 
-;; 					     (cons (file-name-directory (locate-library "pov-mode")) 
-;; 						   (if font-pov-is-Emacs data-directory data-directory-list)))))
-
-
-
-
 
 ;; Lets play with the Toolbar, we want to add buttons for 
 ;; rendering and showing images, lets place them on the rightmost
@@ -999,7 +1012,8 @@ font-pov-keyword-face"
 			  "granite" "gray" "gray_threshold" "green"
 			  "height_field" "hexagon" "hf_gray_16" "hierarchy" "hypercomplex" "hollow"
 			  "if" "ifdef" "iff" "ifndef" "image_height" "image_map" "image_pattern" "image_width"
-			  "include" "initial_clock" "initial_frame" "inside" "int" "interior" "interior_texture" 
+			  "include" "initial_clock" "initial_frame" "inside" "inside_vector" 
+			  "int" "interior" "interior_texture" 
 			  "internal" "interpolate" "intersection" "intervals" "inverse" "ior" "irid" 
 			  "irid_wavelength" "isosurface"
 			  "jitter" "jpeg" "julia" "julia_fractal"
@@ -1018,7 +1032,8 @@ font-pov-keyword-face"
 			  "panoramic" "parallel" "parametric" "pass_through" "pattern" "perspective" "pgm"
 			  "phase" "phong" "phong_size" "photons" "pi" "pigment" "pigment_map" "pigment_pattern"
 			  "planar" "plane" "png" "point_at" "poly" "poly_wave" "polygon" "pot" "pow" "ppm"
-			  "precision" "precompute" "pretrace_end" "pretrace_start" "prism" "projected_through"
+			  "precision" "precompute" "pretrace_end" "pretrace_start" "prism" "prod"
+			  "projected_through"
 			  "pwr"
 			  "quadratic_spline" "quadric" "quartic" "quaternion" "quick_color" "quick_colour"
 			  "quilted"
@@ -1031,7 +1046,7 @@ font-pov-keyword-face"
 			  "smooth" "smooth_triangle" "solid" "sor" "spacing" "specular" "sphere" "sphere_sweep"
 			  "spherical" "spiral1" "spiral2" "spline" "split_union" "spotlight" "spotted" "sqr"
 			  "sqrt" "statistics" "str" "strcmp" "strength" "strlen" "strlwr" "strupr" "sturm"
-			  "substr" "superellipsoid" "switch" "sys"
+			  "substr" "sum" "superellipsoid" "switch" "sys"
 			  "t" "tan" "tanh" "target" "text" "texture" "texture_list" "texture_map" "tga"
 			  "thickness" "threshold" "tiff" "tightness" "tile2" "tiles" "tolerance" "toroidal"
 			  "torus" "trace" "transform" "translate" "transmit" "triangle" "triangle_wave" "true"
@@ -1089,7 +1104,7 @@ font-pov-keyword-face"
 ;; -- end C.H --
 
 (defun pov-mode nil
-  "Major mode for editing PoV files. (Version 2.19)
+  "Major mode for editing PoV files. (Version 2.20)
 
    In this mode, TAB and \\[indent-region] attempt to indent code
 based on the position of {} pairs and #-type directives.  The variable
@@ -1791,21 +1806,22 @@ without questions"
       (define-key pov-mode-map "{" 'pov-open)
       (define-key pov-mode-map "}" 'pov-close)
       (define-key pov-mode-map "\t" 'pov-tab)
-      (define-key pov-mode-map "\r" 'pov-newline)
-      (define-key pov-mode-map "\C-c\C-c" 'pov-command-query) ;AS
-       (define-key pov-mode-map "\C-c\C-h" 'pov-keyword-help) 
-      (define-key pov-mode-map "\C-c\C-l" 'pov-show-render-output) 
-      (define-key pov-mode-map "\C-c\C-rt" 'menu-render-test)
-      (define-key pov-mode-map "\C-c\C-rl" 'menu-render-low)
-      (define-key pov-mode-map "\C-c\C-rm" 'menu-render-mid)
-      (define-key pov-mode-map "\C-c\C-rh" 'menu-render-high)      
-      (define-key pov-mode-map "\C-c\C-rx" 'menu-render-highest)
-      (define-key pov-mode-map "\C-c\C-o" 'pov-open-include-file) 
       (define-key pov-mode-map "\M-\t" 'pov-complete-word)
-      (define-key pov-mode-map "\C-c\C-ve" 'menu-external-viewer)      
-      (define-key pov-mode-map "\C-c\C-vi" 'menu-internal-viewer)      
+      (define-key pov-mode-map "\r" 'pov-newline)
+      (define-key pov-mode-map "\C-c\C-cc" 'pov-command-query) ;AS
+      (define-key pov-mode-map "\C-c\C-ch" 'pov-keyword-help) 
+      (define-key pov-mode-map "\C-c\C-cr" 'tool-bar-command-render)
+      (define-key pov-mode-map "\C-c\C-cl" 'pov-show-render-output) 
+      (define-key pov-mode-map "\C-c\C-c1" 'menu-render-test)
+      (define-key pov-mode-map "\C-c\C-c2" 'menu-render-low)
+      (define-key pov-mode-map "\C-c\C-c3" 'menu-render-mid)
+      (define-key pov-mode-map "\C-c\C-c4" 'menu-render-high)      
+      (define-key pov-mode-map "\C-c\C-c5" 'menu-render-highest)
+      (define-key pov-mode-map "\C-c\C-ci" 'pov-open-include-file) 
+      (define-key pov-mode-map "\C-c\C-ce" 'menu-external-viewer)      
+      (define-key pov-mode-map "\C-c\C-cv" 'menu-internal-viewer)      
       ;;  View menu
-
+      
       (define-key pov-mode-map [menu-bar View] 
 	(cons "View" (make-sparse-keymap "View")))
       (define-key pov-mode-map [menu-bar View ext]
@@ -1850,13 +1866,11 @@ without questions"
 	      ;;      '(menu-item "Render" pov-render-dialog
 	      `(menu-item "Render this file using the default quality" tool-bar-command-render
 			  :image ,(create-image rendericon )))
-	    ;;  :type xpm 
-	    ;; :file "EMACSLISPLIBRARY/povrender.xpm")))
+
 	    (define-key pov-mode-map [tool-bar view] 
 	      `(menu-item "Preview"   tool-bar-command-view
 			  :image ,(create-image viewicon)))))))
-      ;;  :type xpm  ;; these two paths need a fix. (concat etc. etc.) doesn't work. Why?
-      ;; 			  :file "EMACSLISPLIBRARY/povview.xpm" )))))
+  
 
 
      
@@ -1892,9 +1906,12 @@ and autocompleteted, default is word at point"
 		 default
 	       input))
 	 (buffer (find-file-noselect  
-		  (concat pov-documentation-directory pov-documentation-keyword-index )))
+		  (concat 
+		   (file-name-as-directory pov-documentation-directory) 
+		   pov-documentation-keyword-index )))
 	 (buffer-index (find-file-noselect
-			(concat pov-documentation-directory pov-documentation-index)))
+			(concat (file-name-as-directory pov-documentation-directory)
+				pov-documentation-index)))
 	; ( browse-url-generic-program pov-external-browser )
 	 target-file)
     (save-excursion 
@@ -1910,11 +1927,9 @@ and autocompleteted, default is word at point"
 	  (progn (re-search-backward  "href=\"\\([^\"]+\\)\">")
 		 (setq target-file (match-string-no-properties 1))
 		 (if (not (string-match "s_.*\\.html" target-file))
-		   (setq target-file (concat pov-documentation-keyword-index  target-file)))
-		     	   ;	     (message "DEBUG %s" (concat "file://" 
-          (browse-url (concat "file://" 
-				       pov-documentation-directory  
-				       target-file)))
+		     (setq target-file (concat pov-documentation-keyword-index  target-file)))
+		 (browse-url (concat "file://" (file-name-as-directory pov-documentation-directory)
+				     				       target-file)))
 	(progn (set-buffer buffer-index)
 	       (setq buffer-read-only t)
 	       (widen)
@@ -1924,8 +1939,8 @@ and autocompleteted, default is word at point"
 		    (progn (re-search-forward "href=\"\\([^\"]+\\)\">")
 		   	 (setq target-file (match-string-no-properties 1))
 			 (browse-url (concat "file://" 
-						     pov-documentation-directory  
-						     target-file)))
+						    (file-name-as-directory pov-documentation-directory)
+						    target-file)))
 		 (message "Couldn't find keyword: %s, maybe you misspelled it" kw))))
       (kill-buffer buffer)
       (kill-buffer buffer-index))))
@@ -1949,7 +1964,7 @@ and autocompleteted, default is word at point"
     ;(get-buffer-create kw)
     ;(switch-to-buffer-other-window kw)
     ;(message (concat pov-include-dir (concat kw ".inc")))
-    (find-file-read-only (concat pov-include-dir (concat kw ".inc")))
+    (find-file-read-only (concat (file-name-as-directory pov-include-dir) (concat kw ".inc")))
 ))
 
 ; ***************************
@@ -2047,7 +2062,7 @@ and autocompleteted, default is word at point"
 	    (cond ((y-or-n-p
 		    ;;XXX could theoretically be also running in other buffer...
 		    "There is a render process already running: abort it?")
-		   (kill-process pov-current-render-process)
+		   (delete-process pov-current-render-process) ; MP
 		   (message "Process killed")
 		   t)
 		  )))
@@ -2175,7 +2190,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
     (if (and other-view (processp other-view))  ;external
 	(if (not (y-or-n-p
 		  (format "Do yo want to want to kill the old view of %s?" file)))
-	    (kill-process other-view)))
+	    (delete-process other-view)))
     (setq view-command (second (assoc pov-external-view pov-command-alist)))
     (setq view-options (format
 			(third (assoc pov-external-view pov-command-alist))

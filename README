@@ -1,26 +1,68 @@
-Please run first the setup.sh, which will ask you where can find the
-POV-Ray files and where your lisp files reside, then modify your
-.emacs following the instruction in the comments in
-"pov-mode.el" or in the output of this script
+INSTALLATION
 
-If you are a Winzoz user, and you can't exec the setup.sh script, you
-*must* edit pov-mode.el manually. So, change all the occurrences of 
-SHARELIBSPOVRAY    	with the directory where platform-independent
-			     files of POV-Ray resides.
-EMACSLISPLIBRARY	with the directory where you unpack this package
-POVRAYHTMLDOCDIR	with the directory where resides the HTML
-			     documentation of POV-Ray.
+To automatically load pov-mode every time Emacs starts up, put the
+following line into your .emacs file:
 
-Then add this lines to your .emacs configuration file:
+     (require 'pov-mode)
 
-(autoload 'pov-mode "\path\to\pov-mode" ; PLEASE EDIT THIS
-  "PoVray scene file mode" t)
-(setq auto-mode-alist
-	(append '(("\\.pov$" . pov-mode) 
-		  ("\\.inc$" . pov-mode)
-                ) auto-mode-alist))
+or better: 
 
-Finally, fix the name of the keyword index file via M-x
-customize-group pov.
-Let me know if it works. 
-MP
+        (autoload 'pov-mode "pov-mode"
+           "PoVray scene file mode" t)
+        (setq auto-mode-alist
+	      (append '(("\\.pov\\'" . pov-mode) 
+		        ("\\.inc\\'" . pov-mode))
+               auto-mode-alist))
+
+The file pov-mode.el and the InsertMenu gerarchy *MUST* be in your
+load-path. (Use C-h v load-path to see which directories are in the
+load-path).
+This package contains 2 icons and over 200 example
+scenes, so I'd suggest you to add the whole content of the tarball
+to the load-path in your .emacs. Example:
+
+   (setq load-path (cons "/path/to/pov-mode/pov-mode-mp-2.20/"
+                 load-path))
+
+Once you have add the content of the tarball to the load path, and
+modified your .emacs, you can restart emacs. Try to open a new file
+named test.pov. pov-mode should start automagically. There's
+another step you must to do: adding the path to the povray'
+documentation.
+
+Adding the path to the documentation is very simple: once the pov-mode has
+been loaded, go to the customize menu, typing 
+
+   M-x customize-group RET pov RET
+
+you *must* set these two variables:
+
+Pov Include Dir
+Pov Documentation Directory
+
+The default is the default installation path of the official povray
+binary distribution as root. You may have installed povray
+somewhere else, so fix it! Usually you should change only the
+prefix /usr/local to your installation PREFIX
+After this step you *must* push the botton "Save for Future
+Sessions" and restart emacs. That's all!
+
+
+NOTE: To achieve any sort of reasonable performance, you should
+  byte-compile this package.  In emacs, type M-x byte-compile-file
+  and then enter the name of this file.
+
+You can customize the behaviour of pov-mode and via the
+customization menu or by simply entering M-x customize-group pov.
+So, try this! 
+
+You can customize the Insert menu simply by adding the target 
+file in the directory InsertMenu. Please rename the file with the
+syntax NUMBER NUMBER SPACE - SPACE NAME WITH SPACES.txt
+e.g. "01 - My template.txt". If you use the shell write:
+mv myfile.pov 01\ -\ My\ template.txt
+Then move it in the InserMenu directory: choose the appropriate 
+subdirectory. The number indicate the menu order. Done! Just
+restart emacs.
+
+To learn about the basics, just load a pov-file and press C-h m.
