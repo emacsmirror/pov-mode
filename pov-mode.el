@@ -1,19 +1,24 @@
 ;;; pov-mode.el --- major mode for Povray scene files
+
+;; Copyright (C) 1997 Peter W. Boettcher
+
 ;;
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
 ;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
-;; Modified: 18 April 2008
-;; Version: 3.1
+;; Modified: 24 May 2008
+;; Version: 3.2
 ;; Keywords: pov, povray
 ;;
-;;
+
+;; This file is not (yet) part of GNU Emacs
+
+
 ;; LCD Archive Entry:
 ;; povray|Peter Toneby|woormie@acc.umu.se|
 ;; Major mode for Povray scene files|
 ;; 08-Sep-2003|2.10|~/lib/emacs/pov-mode.el|
 ;;
-;; Copyright (C) 1997 Peter W. Boettcher
 ;;
 ;;
 ;;
@@ -30,7 +35,7 @@
 ;;    You should have received a copy of the GNU General Public License
 ;;    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-;;;;
+
 ;;; Commentary:
 ;;
 ;; This major mode for GNU Emacs provides support for editing Povray
@@ -39,11 +44,11 @@
 ;; keyword completion and font-lock highlighting, as well as the
 ;; ability to look up those keywords in the povray docu.
 ;;
-
+;;
 ;; INSTALLATION
-
+;;
 ;; Add the following code to your emacs init file.
-
+;;
 ;; (add-to-list 'load-path "~/john/pov-mode-3.x")
 ;; (autoload 'pov-mode "pov-mode" "PoVray scene file mode" t)
 ;; (add-to-list 'auto-mode-alist '("\\.pov\\'" . pov-mode))
@@ -67,8 +72,7 @@
 ;; possible that <http://www.imagico.de/> has a fresher version of
 ;; this package.
 ;; 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; 
+;;; Change Log:
 ;;
 ;;Modified by: Peter Boettcher <pwb@andrew.cmu.edu>
 ;;  5/8/97:
@@ -274,6 +278,12 @@
 ;;     Resized the icons to suite the 24x24 pixel standard
 ;;     Added a new Misc menu for comment, uncomment and doc lookup
 ;;     Fixed the pov-open-include-file function to prompt to existing files
+;; 2008-04-28 
+;;     Added the autoloads for elpa and package.el
+;;     Fixed a minor #macro indenting bug
+;; 2008-05-24 Version 3.2 
+;;     Written the texinfo manual. No code improvement (sorry)
+;;     
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -283,16 +293,22 @@
 ;;  Please send bug reports/comments/suggestions and of course patches to 
 ;;           Marco Pessotto
 ;;        <marco.erika@gmail.com>
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;               TODO
 ;;
 ;;    Fix the standard include file command
 ;;    Write the texinfo documentation
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;; Better safe than sorry, lets fail if you are using a (very?) old
+
+;;; Code:
+
+;; Better safe than sorry, lets fail if you are using a (very?) old
 ;; version of (X)Emacs.
+
+
+
 (if (if (save-match-data (string-match "Lucid\\|XEmacs" (emacs-version)))
 	(and (= emacs-major-version 19) (< emacs-minor-version 14))
       (and (= emacs-major-version 19) (< emacs-minor-version 29)))
@@ -401,7 +417,7 @@
 (require 'browse-url)
 (require 'newcomment)
 
-(defconst pov-mode-version '3.1   ;; this is the only occurence
+(defconst pov-mode-version '3.2   ;; this is the only occurence
   "The povray mode version.")
 
 (defvar pov-tab-width)
@@ -685,15 +701,14 @@ font-pov-keyword-face"
 ;; 	 (turn-on-font-lock))
        ;; associate *.pov and *.inc with pov if flag is set and no other
        ;; modes already have
+;;;###autoload (add-to-list 'auto-mode-alist '("\\.pov\\'" . pov-mode))
+;;;###autoload (add-to-list 'auto-mode-alist '("\\.inc\\'" . pov-mode))
+
 (cond (pov-associate-pov-and-inc-with-pov-mode-flag 
        (when (not (assoc "\\.pov\\'" auto-mode-alist))
-	 (setq auto-mode-alist
-	       (append '(("\\.pov\\'" . pov-mode)) auto-mode-alist)))
+	 (add-to-list 'auto-mode-alist '("\\.pov\\'" . pov-mode)))
        (when (not (assoc "\\.inc\\'" auto-mode-alist))
-	 (setq auto-mode-alist
-	       (append '(("\\.inc\\'" . pov-mode)) auto-mode-alist)))))
-;;       ))
-
+	 (add-to-list 'auto-mode-alist '("\\.inc\\'" . pov-mode)))))
 ;;END AS
 
 (defvar font-pov-do-multi-line t
@@ -810,7 +825,7 @@ font-pov-keyword-face"
   "PoV hack to handle Emacs/XEmacs foo")
 
 (defvar pov-begin-re 
-  "\\<#\\(if\\(n?def\\)?\\|case\\|range\\|switch\\|while\\)\\>")
+  "\\<#\\(if\\(n?def\\)?\\|case\\|macro\\|range\\|switch\\|while\\)\\>")
 
 (defvar pov-end-re  "\\<#break\\|#end\\>")
 
@@ -1028,8 +1043,10 @@ font-pov-keyword-face"
 )
 ;; -- end C.H --
 
+
+;;;###autoload
 (defun pov-mode nil
-  "Major mode for editing PoV files. (Version 3.1)
+  "Major mode for editing PoV files. (Version 3.2)
 
    In this mode, TAB and \\[indent-region] attempt to indent code
 based on the position of {} pairs and #-type directives.  The variable
@@ -2331,5 +2348,3 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 
 (provide 'pov-mode)
 ;;; pov-mode.el ends here
-
-
