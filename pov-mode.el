@@ -3,8 +3,8 @@
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
 ;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
-;; Modified: 10 Feb 2008
-;; Version: 2.12
+;; Modified: 16 Feb 2008
+;; Version: 2.14
 ;; Keywords: pov, povray
 ;;
 ;;
@@ -61,14 +61,14 @@
 ;; to find it (Use C-h v load-path to see which directories are in the
 ;; load-path).
 ;;
-;; NOTE: To achieve any sort of reasonable performance, YOU MUST
+;; NOTE: To achieve any sort of reasonable performance, you should
 ;;   byte-compile this package.  In emacs, type M-x byte-compile-file
 ;;   and then enter the name of this file.
 ;;
 ;; You can customize the behaviour of pov-mode and via the
 ;; customization menu or by simply entering M-x customize-group pov.
-;; In many or even most cases, however, it should be completely
-;; sufficient to to rely on the default settings.
+;; So, try this! 
+;; 
 ;;
 ;; To learn about the basics, just load a pov-file and press C-h m.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -190,25 +190,39 @@
 ;;        correct buffer, found by Hartwig Bosse.
 ;;
 ;; Modified by: Marco Pessotto <marco.erika@gmail.com>
-;; 1/5/2008
+;; 2008-01-05
 ;;    Workaround for Emacs 22 (on which pov-mode was not working)
-;; 2/10/2008
+;; 2008-02-10
 ;;    Really fix the defcustom menu for faces
 ;;    Upgraded to GPL 3
 ;;    Provides a setup.sh script that fix some vars and update the .emacs
-;; 2/11/2008
+;; 2008-02-11
 ;;    Added internal view for GNU Emacs 22
-;; 2/13/2008
+;; 2008-02-13
 ;;    Fixed faces to be consistent with other languages
 ;;     (as much as possible). If you don't like, customize it via
-;;     M-x customize-group pov. Beware! Doesn't tested on Xemacs nor earlier versions of GNU emacs
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;     M-x customize-group pov. Beware! Doesn't tested on Xemacs 
+;;     nor earlier versions of GNU emacs
+
+;; 2008-02-16 Version 2.14 
+;;    Rewrited from scratch the pov-keyword-help function
+;;    and commented out the old one, because the povuser.txt no more
+;;    exists. Now the pov-mode.el open an external browser to find
+;;    the documentation.  Try this and let me know! Browser can be
+;;    choosen in the M-x customize-group pov menu. However, don't
+;;    modify the name of directory and file names if this feature
+;;    works. You'll mess up things. This has been tested on the
+;;    documentation for pov-ray 3.61 (official binaries for linux).
+;;    Your documentation (for Mac or for previous or later version
+;;    of PoV-ray) may be somewhere else. Please let me know.
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
 ;;        Cre Date:     04 March 1994
 ;; This file derived from postscript mode by Chris Maio
 ;;
-;;  Please send bug reports/comments/suggestions to Marco Pessotto
+;;  Please send bug reports/comments/suggestions and of course patches to 
+;;           Marco Pessotto
 ;;        marco.erika@gmail.com
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -220,7 +234,7 @@
 ;; * clean up viewing and rendering code
 ;; * should render or view be decided on filedates? If so, what
 ;;     image file-name extensions should be checked?
-;;     I think PNG is default for UNIX, not sure.
+;;     I think PNG is default for UNIX, not sure. ;; It is
 ;;     I could make this a customizeation option.
 ;; * imenu support
 ;;     started, but needs to be fixed so it handles nested menus.
@@ -228,7 +242,7 @@
 ;; * Make hooks for menus, so they are userselectable
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO list (mp)
-;; * fixing or workaround for povuser.txt
+;; * fix the tool-bar for GNU Emacs 22
 ;; * upgrade to PoV-ray 3.6
 ;; *fix the bug with: Mark set
 ;;  imenu--truncate-items: Wrong type argument: listp, 635
@@ -291,7 +305,7 @@
 (require 'font-lock) ;;[TODO] Not nice to reqire it, the user should
                      ;;       have a choise...
 
-(defconst pov-mode-version '2.12   ;; this is the only occurence
+(defconst pov-mode-version '2.14   ;; this is the only occurence
   "The povray mode version.")
 
 (defvar pov-tab-width 8)
@@ -386,15 +400,12 @@
 	:type 'string
 	:group 'pov)
 
-      ;;allow user to customize external or internal viewer as defaults if she
-      ;;is using Xemacs; for FSF Emacs assume external, since it can't
-      ;;handle pictures anyway
-      ;(if  (and (boundp 'running-xemacs) running-xemacs)
-      (defcustom pov-default-view-internal nil ;; for now
+      (defcustom pov-default-view-internal t 
 	"*Should the pictures be displayed internally by default?"
 	:type 'boolean
-	:group 'pov)
-      ;(defvar pov-default-view-internal nil))
+	:group 'pov
+	)
+
 
       (defcustom pov-run-default "+i%s"
 	"*The default options for the Render command (%s is replaced by the filename)."
@@ -426,6 +437,14 @@
 	:type 'string
 	:group 'pov
 	)
+
+
+      (defcustom pov-external-browser "firefox"
+	"*The name of the command for the external browser"
+	:type 'string 
+	:group 'pov
+	)
+      
       (defvar pov-external-view
 	"External view")
       (defvar pov-internal-view
@@ -465,10 +484,29 @@
 	:type 'directory
 	:group 'pov)
 
-      (defcustom pov-help-file "povuser.txt"
-	"*The name of the helpfile." ; but there is not a helpfile anymore
-	:type  'file
-	:group 'pov)
+      (defcustom  pov-documentation-directory "POVRAYHTMLDOCDIR/"
+	"*The directory that contains the html documentation of povray"
+	:type 'directory
+	:group 'pov
+	)
+      
+      (defcustom pov-documentation-index "idx.html"
+	"This file sould contain the general index for *all* the documentation"
+	:type 'file
+	:group 'pov
+	)
+      
+      (defcustom pov-documentation-keyword-index "s_97.html"
+	"*This file (tested on povlinux-3.61) should contain the index for the keywords (section 3)"
+	:type 'file
+	:group 'pov
+	)
+
+      
+;;       (defcustom pov-help-file "povuser.txt"
+;; 	"*The name of the helpfile." ; but there is not a helpfile anymore
+;; 	:type  'file
+;; 	:group 'pov)
 
       (defcustom pov-associate-pov-and-inc-with-pov-mode-flag t
 	"*If t then files ending with .pov and .inc will automatically start
@@ -544,9 +582,10 @@ font-pov-variable-face"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-operator-face  'font-lock-builtin-face
-	"*Face to use for PoV operators. Also try 
-font-pov-operator-face"
+      (defcustom font-pov-operator-face  'default 
+	"*Face to use for PoV operators. Just black and white. You should try
+font-pov-operator-face or font-lock-builtin-face to get the most of the 
+syntax coloring "
 	:type 'face
 	:group 'pov)
 
@@ -571,9 +610,9 @@ font-pov-directive-face"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-number-face 'font-lock-constant-face
-	"*What color does numbers have. Also try 
-font-pov-number-face"
+      (defcustom font-pov-number-face 'default
+	"*What color does numbers have. Just black and white. Try 
+font-pov-number-face or font-lock-constant-face to view colored number"
 	:type 'face
 	:group 'pov)
 
@@ -1074,7 +1113,7 @@ font-pov-keyword-face"
 ;; -- end C.H --
 
 (defun pov-mode nil
-  "Major mode for editing PoV files. (Version 2.12)
+  "Major mode for editing PoV files. (Version 2.14)
 
    In this mode, TAB and \\[indent-region] attempt to indent code
 based on the position of {} pairs and #-type directives.  The variable
@@ -1730,78 +1769,146 @@ character number of the character following `begin' or START if not found."
 ;; doc?". Or open a external browser, but where? there are more
 ;; then 150 files. Where is the right one, without violating the
 ;; license? MP
+
+
+;; OK, let's try 
+;; (if (string-match "^ *Output file: \\(.*\\), [0-9]+ bpp .+$"
+;; 	string)
+;; 	    (setq image-file (match-string 1 string)))
+
+
+
+; (defun pov-keyword-rec-helper 
+
+
 (defun pov-keyword-help nil
-  (interactive)
-  "look up the appropriate place for keyword in the POV documentation"
-  "keyword can be entered and autocompleteted, default is word at point /AS"
+   "look up the appropriate place for keyword in the POV documentation 
+using an external browser. Keyword can be entered and autocompleteted, 
+default is word at point"
+ (interactive)
   (let* ((default (current-word))
 	 (input (completing-read
 		 (format "lookup keyword (default %s): " default)
 		 pov-keyword-completion-alist))
 	 (kw (if (equal input "")
 		 default
-	       input)))
-    (get-buffer-create pov-doc-buffer-name)
-    (switch-to-buffer-other-window pov-doc-buffer-name)
-    (find-file-read-only (concat pov-home-dir pov-help-file))
-    ;;Try to look up a keyword in the povray-documentation:
-    ;;uses a heuristic to find the appropriate entry
-    ;;since the povray-docu is formatted rather arbitrarily
-    ;;try:
-    (cond
-     ((progn
-       (goto-char (point-min))
-       (search-forward-regexp
-	;;first: the language description is in section four, so look for:
-	(concat
-	 "^4\\.[0-9]+\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?[ 	]+"
-	 ;;change light_source -> light_source OR light source (that's
-	 ;;the usual spelling in the headings)
-	 ;;(wouldn't a working replace-in-string be nice, even for
-	 ;;FSF-emacs ???)
-	 (if (string-match "\\(.*\\)_\\(.*\\)" kw)
-	     (concat (match-string 1 kw)
-		     "[_ 	]"
-		     (match-string 2 kw)
-		     ".*\\>$")
-	   kw))
-	nil t))			;return nil if not found
-       ;; make the line of the match the top line of screen XXX
-       (recenter 0))
+	       input))
+	 (buffer (find-file-noselect  
+		  (concat pov-documentation-directory pov-documentation-keyword-index )))
+	 (buffer-index (find-file-noselect
+			(concat pov-documentation-directory pov-documentation-index)))
+	 ( browse-url-generic-program pov-external-browser )
+	 target-file)
+    (save-excursion 
+      (set-buffer buffer)
+      (setq buffer-read-only t)
+      (widen)
+      (goto-char (point-min))
+      (setq case-fold-search t) ;; it's buffer-local 
+      (if (re-search-forward 
+	   (concat "<code>" kw "</code>") 
+	   (save-excursion 
+	      (search-forward "All reserved words are fully lower case" )
+	      (point)) t)
+	  (progn (re-search-backward  "href=\"\\([^\"]+\\)\">")
+		 (setq target-file (match-string-no-properties 1))
+		 (if (not (string-match "s_.*\\.html" target-file))
+		   (setq target-file (concat pov-documentation-keyword-index  target-file)))
+		     	   ;	     (message "DEBUG %s" (concat "file://" 
+          (browse-url-generic (concat "file://" 
+				       pov-documentation-directory  
+				       target-file))
+	  (kill-buffer buffer))
+	(progn (kill-buffer buffer)
+	       (set-buffer buffer-index)
+	       (setq buffer-read-only t)
+	       (widen)
+	       (goto-char (point-min))
+	       (setq case-fold-search t) ;; it's buffer-local 
+	       (if  (re-search-forward (concat "^[ \t]*" kw) (save-excursion (point-max)) t) ; just the 1^ entry
+		    (progn (re-search-forward "href=\"\\([^\"]+\\)\">")
+		   	 (setq target-file (match-string-no-properties 1))
+			 (browse-url-generic (concat "file://" 
+						     pov-documentation-directory  
+						     target-file)))
+		 (error (concat "Couldn't find keyword: " kw
+				", maybe you misspelled it" )))
+		 (kill-buffer buffer-index))))))
 
-     ;;second: if that didn't work:
-     ;;same again with a relaxed regexp that allows more matches:
-     ((progn
-	(goto-char (point-min))
-	(search-forward-regexp
-	 (concat
-	  "^4\\.[0-9]+\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?[ 	]+.*"
-	  (if (string-match "\\(.*\\)_\\(.*\\)" kw)
-	      (concat
-	       (match-string 1 kw)
-	       "[_ 	]"
-	       (match-string 2 kw))
-	    kw))
-	 nil t))
-      (recenter 0))
-     ;;third try:
-     ;;syntactic definitions appear like this: "KEYWORD:"
-     ((progn
-	(goto-char (point-min))
-	(search-forward-regexp
-	 (concat "\\<" (upcase kw) ":")
-	 nil t)))
-      ;;last try: simply search keyword from beginning of buffer
-     ((progn
-       (goto-char (point-min))
-       (while (y-or-n-p (concat "Continue to look for " kw))
-	 (search-forward-regexp
-	  (concat  "\\<" kw  "\\>")
-	  nil t))))
-     ;;OK, that's it: we failed
-     (t (error (concat "Couldn't find keyword: " kw
-		      ", maybe you misspelled it?"))))
-    ))
+
+
+;; (defun pov-keyword-help nil
+;;   (interactive)
+;;   "look up the appropriate place for keyword in the POV documentation using
+;; an external browser. keyword can be entered and autocompleteted, default is word at point"
+;;   (let* ((default (current-word))
+;; 	 (input (completing-read
+;; 		 (format "lookup keyword (default %s): " default)
+;; 		 pov-keyword-completion-alist))
+;; 	 (kw (if (equal input "")
+;; 		 default
+;; 	       input)))
+;;     (get-buffer-create pov-doc-buffer-name)
+;;     (switch-to-buffer-other-window pov-doc-buffer-name)
+;;     (find-file-read-only (concat pov-home-dir pov-help-file))
+;;     ;;Try to look up a keyword in the povray-documentation:
+;;     ;;uses a heuristic to find the appropriate entry
+;;     ;;since the povray-docu is formatted rather arbitrarily
+;;     ;;try:
+;;     (cond
+;;      ((progn
+;;        (goto-char (point-min))
+;;        (search-forward-regexp
+;; 	;;first: the language description is in section four, so look for:
+;; 	(concat
+;; 	 "^4\\.[0-9]+\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?[ 	]+"
+;; 	 ;;change light_source -> light_source OR light source (that's
+;; 	 ;;the usual spelling in the headings)
+;; 	 ;;(wouldn't a working replace-in-string be nice, even for
+;; 	 ;;FSF-emacs ???)
+;; 	 (if (string-match "\\(.*\\)_\\(.*\\)" kw)
+;; 	     (concat (match-string 1 kw)
+;; 		     "[_ 	]"
+;; 		     (match-string 2 kw)
+;; 		     ".*\\>$")
+;; 	   kw))
+;; 	nil t))			;return nil if not found
+;;        ;; make the line of the match the top line of screen XXX
+;;        (recenter 0))
+
+;;      ;;second: if that didn't work:
+;;      ;;same again with a relaxed regexp that allows more matches:
+;;      ((progn
+;; 	(goto-char (point-min))
+;; 	(search-forward-regexp
+;; 	 (concat
+;; 	  "^4\\.[0-9]+\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?\\(\\.[0-9]+\\)?[ 	]+.*"
+;; 	  (if (string-match "\\(.*\\)_\\(.*\\)" kw)
+;; 	      (concat
+;; 	       (match-string 1 kw)
+;; 	       "[_ 	]"
+;; 	       (match-string 2 kw))
+;; 	    kw))
+;; 	 nil t))
+;;       (recenter 0))
+;;      ;;third try:
+;;      ;;syntactic definitions appear like this: "KEYWORD:"
+;;      ((progn
+;; 	(goto-char (point-min))
+;; 	(search-forward-regexp
+;; 	 (concat "\\<" (upcase kw) ":")
+;; 	 nil t)))
+;;       ;;last try: simply search keyword from beginning of buffer
+;;      ((progn
+;;        (goto-char (point-min))
+;;        (while (y-or-n-p (concat "Continue to look for " kw))
+;; 	 (search-forward-regexp
+;; 	  (concat  "\\<" kw  "\\>")
+;; 	  nil t))))
+;;      ;;OK, that's it: we failed
+;;      (t (error (concat "Couldn't find keyword: " kw
+;; 		      ", maybe you misspelled it?"))))
+;;     ))
 
 ; **********************************
 ; *** Open standard include file ***

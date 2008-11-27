@@ -1,5 +1,4 @@
 Please run first the setup.sh, which will ask you where can find the
 POV-Ray files and where your lisp files reside, then modify your
 .emacs following the instruction in the comments in
-"pov-mode.el". This is just a workaround for make pov-mode run in
-emacs 22. mp
+"pov-mode.el". 

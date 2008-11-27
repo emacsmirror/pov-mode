@@ -27,6 +27,19 @@ if [ "$povshare" == "" ]; then
     echo "Using default: $povshare "
 fi
 
+echo
+
+#I assume the HTML documentation is here:
+povdocs=$(echo $(dirname $(which povray)) | sed -e "s|bin|share/doc/povray-3.6/html|")
+echo "Where is the HTML documentation directory?"
+echo -n "Should be $povdocs >>> "
+read povdocs
+if [ "$povdocs" == "" ]; then
+    povdocs=$(echo $(dirname $(which povray)) | sed -e "s|bin|share/doc/povray-3.6/html|")
+    echo "Usinng default: $povdocs "
+fi
+
+echo
 
 povlib=$(pwd)
 # I assume that you are already untar this in the right directory
@@ -37,12 +50,17 @@ if [ "$povlib" == "" ]; then
     povlib=$(pwd)
     echo "Using default: $povlib "
 fi
+
+echo 
+echo
 #get rid of slashes
 povshare=$(echo $povshare | sed -e "s|//* *\$||")
 povlib=$(echo $povlib | sed -e "s|//* *\$||")
+povdocs=$(echo $povdocs | sed -e "s|//* *\$||")
 
 sed -e "s|SHARELIBSPOVRAY|$povshare|" \
-    -e "s|EMACSLISPLIBRARY|$povlib|" pov-mode.el > pov-mode-new.el
+    -e "s|EMACSLISPLIBRARY|$povlib|" \
+    -e "s|POVRAYHTMLDOCDIR|$povdocs|" pov-mode.el > pov-mode-new.el
 
 cp pov-mode.el pov-mode.el.backup
 mv pov-mode-new.el pov-mode.el
