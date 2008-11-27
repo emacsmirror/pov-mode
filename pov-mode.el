@@ -4,7 +4,7 @@
 ;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
 ;; Modified: 10 Feb 2008
-;; Version: 2.11
+;; Version: 2.12
 ;; Keywords: pov, povray
 ;;
 ;;
@@ -40,7 +40,8 @@
 ;; ability to look up those keywords in the povray docu.
 ;;
 ;; It should work for either Xemacs or FSF Emacs, versions >= 20;
-;; however, only Xemacs can display pictures (but we are working on it).
+;; At the present, pov-mode have internal display of picture only with Xemacs.
+;; Internal display for GNU Emacs will come soon.
 ;;
 ;; To automatically load pov-mode every time Emacs starts up, put the
 ;; following line into your .emacs file:
@@ -49,12 +50,12 @@
 ;;
 ;; or better: 
 ;;
-;;         autoload 'pov-mode "/path/to/pov-mode.el" ;; please modify this
+;;         (autoload 'pov-mode "/path/to/pov-mode.el" ;; please modify this
 ;;            "PoVray scene file mode" t)
-;;         setq auto-mode-alist
+;;         (setq auto-mode-alist
 ;;	      (append '(("\\.pov$" . pov-mode) 
-;;		  ("\\.inc$" . pov-mode)
-;;               ) auto-mode-alist))
+;;		  ("\\.inc$" . pov-mode))
+;;                auto-mode-alist))
 ;;
 ;; Of course pov-mode has to be somewhere in your load-path for emacs
 ;; to find it (Use C-h v load-path to see which directories are in the
@@ -194,8 +195,9 @@
 ;; 2/10/2008
 ;;    Really fix the defcustom menu for faces
 ;;    Upgraded to GPL 3
-;;
-;;
+;;    Provides a setup.sh script that fix some vars and update the .emacs
+;; 2/11/2008
+;;    Added internal view for GNU Emacs 22
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -222,7 +224,6 @@
 ;; * Make hooks for menus, so they are userselectable
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO list (mp)
-;; * Internal display on Emacs 22
 ;; * fixing or workaround for povuser.txt
 ;; * upgrade to PoV-ray 3.6
 ;; *fix the bug with: Mark set
@@ -241,6 +242,7 @@
 ;;  imenu--truncate-items: Wrong type argument: listp, 635
 ;;  imenu--cleanup: Wrong type argument: listp, 635
 ;;  Auto-saving...
+;;  Workaround: setq pov-imenu-only-macros t (via M-x customize)
 ;;;; Better safe than sorry, lets fail if you are using a (very?) old
 ;; version of (X)Emacs.
 (if (if (save-match-data (string-match "Lucid\\|XEmacs" (emacs-version)))
@@ -295,7 +297,7 @@
 (require 'font-lock) ;;[TODO] Not nice to reqire it, the user should
                      ;;       have a choise...
 
-(defconst pov-mode-version '2.11   ;; this is the only occurence
+(defconst pov-mode-version '2.12   ;; this is the only occurence
   "The povray mode version.")
 
 (defvar pov-tab-width 8)
@@ -343,28 +345,33 @@
 
 ;; MP: I don't use these functions because I set it externally with the setup.sh script
 ;; I'm going to  comment out this
-(unless (fboundp 'locate-data-directory)
-  (defun locate-data-directory (name &optional dirs)
-    (if dirs
-        (if (file-directory-p (expand-file-name name (car dirs)))
-            (expand-file-name name (car dirs))
-          (locate-data-directory name (cdr dirs)))
-      (expand-file-name name data-directory))))
+;;  (unless (fboundp 'locate-data-directory)
+;;    (defun locate-data-directory (name &optional dirs)
+;;      (if dirs
+;;          (if (file-directory-p (expand-file-name name (car dirs)))
+;;              (expand-file-name name (car dirs))
+;;            (locate-data-directory name (cdr dirs)))
+;;        (expand-file-name name data-directory))))
+;;  
+;;  (unless (fboundp 'locate-data-file)
+;;    (defun locate-data-file (name &optional dirs)
+;;      (print dirs)
+;;      (if dirs
+;;          (if (file-regular-p (expand-file-name name (car dirs)))
+;;              (expand-file-name name (car dirs))
+;;            (locate-data-file name (cdr dirs)))
+;;        (expand-file-name name data-directory))))
+;;  
 
-(unless (fboundp 'locate-data-file)
-  (defun locate-data-file (name &optional dirs)
-    (print dirs)
-    (if dirs
-        (if (file-regular-p (expand-file-name name (car dirs)))
-            (expand-file-name name (car dirs))
-          (locate-data-file name (cdr dirs)))
-      (expand-file-name name data-directory))))
+
+
 
 ;; This is because FSFEmacs has a ridiculusly low max-lisp-eval-depth
 (when (> 1000 max-lisp-eval-depth)
   (customize-set-value 'max-lisp-eval-depth 1000))
 
 ;; Yup XEmacs didn't get cutomizations until 20.2.
+;; I'm going to drop emacsen that don't support customizations
 (cond ((or font-pov-is-XEmacs20-2 (or font-pov-is-Emacs20 font-pov-is-Emacs21 font-pov-is-Emacs22))
       (defgroup  pov nil
 	"*Major mode for editing povray 3.X scence files <http://www.povray.org>."
@@ -389,7 +396,7 @@
       ;;is using Xemacs; for FSF Emacs assume external, since it can't
       ;;handle pictures anyway
       ;(if  (and (boundp 'running-xemacs) running-xemacs)
-      (defcustom pov-default-view-internal t
+      (defcustom pov-default-view-internal nil ;; for now
 	"*Should the pictures be displayed internally by default?"
 	:type 'boolean
 	:group 'pov)
@@ -465,7 +472,7 @@
 	:group 'pov)
 
       (defcustom pov-help-file "povuser.txt"
-	"*The name of the helpfile."
+	"*The name of the helpfile." ; but there is not a helpfile anymore
 	:type  'file
 	:group 'pov)
 
@@ -581,13 +588,13 @@ end, or else."
 
 ;;FIX ME
 
-(setq pov-icons-location "EMACSLISPLIBRARY/povrender.xpm")
+(setq pov-icons-location "EMACSLISPLIBRARY/")
 
 
 ;; Lets play with the Toolbar, we want to add buttons for 
 ;; rendering and showing images, lets place them on the rightmost
 ;; position of the toolbar.
-(cond ((or font-pov-is-XEmacs20 font-pov-is-XEmacs21)
+(cond ((or font-pov-is-XEmacs20 font-pov-is-XEmacs21) ;; this is only for Xemacs
        (defvar toolbar-render-icon
 	 (if (featurep 'xpm)
 	     (let ((rendericon (concat pov-icons-location "povrender.xpm")))
@@ -630,7 +637,57 @@ end, or else."
 	   ["Render"        (pov-render-file "Render"                (buffer-file-name) nil) t]
 	   ["Cancel"        (pov-render-file "Render"                (buffer-file-name) nil) t]
 	   ))
-       ))
+       )
+
+;;;;;;;;; SHALL WE BREAK? ;;;;;;;;;;;;;;
+;; ((font-pov-is-Emacs22)
+;;       (defvar toolbar-render-icon
+;;	 (if (featurep 'xpm)
+;;	     (let ((rendericon (concat pov-icons-location "povrender.xpm")))
+;;	       (toolbar-make-button-list (make-image-instance (vector 'xpm :file rendericon))))
+;;	 ))
+;;       (defvar toolbar-look-icon
+;;	 (if (featurep 'xpm)
+;;	     (let ((viewicon (concat pov-icons-location "povview.xpm")))
+;;	       (toolbar-make-button-list (make-image-instance (vector 'xpm :file viewicon))))
+;;	   ))
+;;       (defvar pov-toolbar 
+;;	 '(
+;;	   [toolbar-file-icon    toolbar-open    t "Open a file"] 
+;;	   [toolbar-folder-icon  toolbar-dired   t "Edit a directory"]
+;;	   [toolbar-disk-icon    toolbar-save    t "Save buffer"]
+;;	   [toolbar-printer-icon toolbar-print   t "Print buffer"]
+;;	   [toolbar-cut-icon     toolbar-cut     t "Kill region"]
+;;	   [toolbar-copy-icon    toolbar-copy    t "Copy region"]
+;;	   [toolbar-paste-icon   toolbar-paste   t "Paste from clipboard"]
+;;	   [toolbar-undo-icon    toolbar-undo    t "Undo edit"]
+;;	   [toolbar-spell-icon   toolbar-ispell  t "Check spelling"]
+;;	   [toolbar-replace-icon toolbar-replace t "Search & Replace"]
+;;	   nil
+;;	   [toolbar-render-icon  (pov-render-dialog) t "Configured Render the file"]
+;;;	   [toolbar-render-icon 
+;;;	    (pov-render-file "Render" (buffer-file-name) nil) 
+;;;	    t "Quick Render the file"]
+;;	   [toolbar-look-icon
+;;	    (if pov-default-view-internal
+;;		(pov-display-image-xemacs pov-image-file)
+;;	      (pov-display-image-externally pov-image-file nil))
+;;	    t "Show the rendered file"]
+;;	   ))
+;;       (defvar pov-render-dialog-desc
+;;	 '("Render Image"
+;;	   ["Test render"   (pov-render-file "Test quality render"   (buffer-file-name) nil) t]
+;;	   ["Low render"    (pov-render-file "Low quality render"    (buffer-file-name) nil) t]
+;;	   ["Medium render" (pov-render-file "Medium quality render" (buffer-file-name) nil) t]
+;;	   ["High render"   (pov-render-file "High quality render"   (buffer-file-name) nil) t]
+;;	   ["Render"        (pov-render-file "Render"                (buffer-file-name) nil) t]
+;;	   ["Cancel"        (pov-render-file "Render"                (buffer-file-name) nil) t]
+;;	   ))
+;;       ))
+;;
+
+) ; end cond 
+
 
 (defun pov-toolbar ()
   (interactive)
@@ -999,7 +1056,7 @@ end, or else."
 ;; -- end C.H --
 
 (defun pov-mode nil
-  "Major mode for editing PoV files. (Version 2.11)
+  "Major mode for editing PoV files. (Version 2.12)
 
    In this mode, TAB and \\[indent-region] attempt to indent code
 based on the position of {} pairs and #-type directives.  The variable
@@ -1977,7 +2034,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
     ;;	'(lambda (process event)
 
 (defun pov-display-image-xemacs (file)
-  "Display the rendered image in a Xemacs frame"
+  "Display the rendered image in a Xemacs or GNU Emacs 22 frame"
   ;;TODO: set frame according to image-size (seems difficult)
   (when (or (not file) (string-equal file ""))
       (setq file
@@ -1988,16 +2045,20 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
       (set-buffer buffer)
       (toggle-read-only -1)
       (erase-buffer)
-      (insert-file-contents file)
-      (toggle-read-only 1)
-      ;;this will either bring the old frame with the picture to the forground
+         ;;this will either bring the old frame with the picture to the forground
       ;;or create a new one
-      (make-frame-visible
-       (or (get-frame-for-buffer (current-buffer))
-	   (get-frame-for-buffer-make-new-frame (current-buffer)))))))
-  ;(concat
-  ; (third (assoc pov-command pov-command-alist))
-  ; file
+      (cond ((or font-pov-is-XEmacs20 font-pov-is-XEmacs21)
+	     (insert-file-contents file)
+	      (toggle-read-only 1)
+	      (make-frame-visible
+	       (or (get-frame-for-buffer (current-buffer)) ;; emacs doesn't have get-frame-for-buffer
+		   (get-frame-for-buffer-make-new-frame (current-buffer)))))
+	    ((and  font-pov-is-Emacs22 (image-type-available-p 'png)) ;; MP
+	     (make-frame)
+	     (make-frame-visible)
+	     (insert-image (create-image file) )
+	      	   (forward-char)
+	     )))))
 
 ; *************
 ; *** Imenu ***
