@@ -1,9 +1,9 @@
 \input texinfo @c -*-texinfo-*-
 @c %**start of header
 @setfilename pov-mode.info
-@settitle The pov-mode manual, version 0.1
+@settitle The pov-mode manual, version 02
 @set VERSION 3.2
-@set UPDATED 24 May 2008
+@set UPDATED 26 May 2008
 @c @syncodeindex pg cp
 @c %**end of header
 
@@ -54,7 +54,7 @@ Documentation License''.
 * Installation::                
 * Getting started::             
 * The menu-bar::                
-* tools  ::                 
+* tools  ::                     
 * Copying This Manual::         
 
 @detailmenu
@@ -164,12 +164,10 @@ need this step.
 @node InsertMenu, Include and docs, Compilation, Installation
 @section Get the InsertMenu tree (optional)
 
-The nice feature of the @file{InsertMenu} is not provided with the
-@file{pov-mode} tarball for copyright reasons. The @file{InsertMenu}
-directory is shipped as a separate package, because is covered by the
-POV-Ray license and may be used by anyone eligible to use POV-Ray
-according to this license. Even if POV-Ray is not considered strictly
-free software, it cannot be considered proprietary software.
+@file{pov-mode} provides a GUI menu @samp{InsertMenu} with over 200
+templates files (inc files, and templates for color, lighting, shape,
+transformation ...etc). However, these templates are not bundled for
+licening issues.
 
 I suggest you to unpack the tarball in the same directory of
 @file{pov-mode.el}, so you don't need anything else.
@@ -197,7 +195,7 @@ for Future Sessions}. In both case restart Emacs. @xref{Insert menu}.
 To use @file{pov-mode.el} at its full power you need to tell it where
 can find the includes and the documentation of POV-Ray. You can do this
 as you have done for the @code{pov-insertmenu-location}, by writing
-the code yourself or by using @code{customize}. The variable are:
+the code yourself or by using @kbd{customize-group @key{RET} pov @key{RET}}. The variable are:
 
 @table @code
 @item pov-include-dir
@@ -270,8 +268,8 @@ One click on a item will move the point to that. It can be useful
 editing large files with a lot of declarations and macros, or to jump
 fast to the camera.
 
-It's safe to use but can be disable setting
-@code{pov-imenu-only-macros} to @code{t} (e.g. via @code{customize}), which
+It's safe to use but can be disable by setting
+@code{pov-imenu-only-macros} to @code{t} (e.g. via @kbd{customize-group @key{RET} pov @key{RET}}), which
 disable everything but the macros; @code{pov-imenu-in-menu} to
 @code{nil} will disable this feature at all.
 
@@ -283,7 +281,7 @@ It use the library @file{imenu.el}.
 
 The @code{Insert} menu exists only if you installed the
 @file{InsertMenu} tree somewhere. @xref{InsertMenu}. It contains a
-large collection of shapes, object, whole scenes templates, etc. Just
+large collection of shapes, objects, whole scenes templates, etc. Just
 click to insert the object. 
 
 I'll provide you just a pair of sample files. However you can use this
@@ -294,7 +292,7 @@ number.
 For example, suppose @file{myscene_template.pov} is your template
 file, and you want to add it under the menu "Insert:Scene Template".
 Rename your file to @file{01 - my scene.txt} (please note the spaces
-and the digit), then place it in the directory @file{InsertMenu/00 - Scene
+and the digits), then place it in the directory @file{InsertMenu/00 - Scene
 templates}, then restart Emacs. Then, your scene template file will
 appear as the first item in the menu @samp{Insert:Scene Template}.
 
@@ -305,7 +303,7 @@ on. Just look at the sample files. I suggest to remove them, get the
 @file{povray-imenu-3.6.tar.gz} (by Christoph Hormann and others) at
 @uref{http://www.imagico.de/imenu/povray-imenu-3.6.tar.gz} or
 @uref{http://xahlee.org/emacs/povray-imenu-3.6.tar.gz}, or build your
-on templates.
+own templates.
 
 
 
@@ -321,12 +319,19 @@ in progress.
 
 The arguments passed to @command{povray} are fully customizable and
 have an incremental quality. So these command are self-explanatory.
-Use @code{customize} to change the value of the quality, e.g. adding
+Use @kbd{customize-group @key{RET} pov @key{RET}} to change the value of the quality, e.g. adding
 switches, please remember to preserve the @code{%s}, which will be
 substituted by the file name. The menu-bar items are also bound to a
 keystroke:
 
 @table @kbd  
+
+@item C-c C-c r
+(@kbd{M-x pov-tool-bar-command-render})
+
+Run @command{povray} without argument (default quality depending on
+your settings.
+
 @item C-c C-c 1 
 (@kbd{M-x pov-menu-render-test})
 
@@ -366,7 +371,7 @@ buffer) or external (using an external command).
       (@code{pov-menu-external-viewer})
 
       Use the program set by @samp{Pov External Viewer Command} in
-      @code{customize} (@code{pov-external-viewer-command})
+      @kbd{customize-group @key{RET} pov @key{RET}} (@code{pov-external-viewer-command})
 
 @item C-c C-c v	
       (@kbd{M-x pov-menu-internal-viewer})
@@ -407,7 +412,9 @@ are bound to a keystroke:
 @end table
 
 The following items are not bound because are command shared with
-other modes, so someone would like to bound it globally. 
+other modes, so someone would like to bound it globally. You can use
+the @kbd{M-x comment-dwim} to comment or uncomment region). Usually is
+bound to @kbd{M-;}.
 
 @table @samp
 
@@ -469,7 +476,7 @@ The default paths are the default in the installation of the binary
 distribution of POV-Ray. So, if you have POV-Ray installed somewhere
 else you have to set these variables to a valid location.
 
-Please use @code{customize} to set these variables.
+Please use @kbd{customize-group @key{RET} pov @key{RET}} to set these variables.
       
 @node include-file, universal, keyword-help, tools
 @section Opening the include files

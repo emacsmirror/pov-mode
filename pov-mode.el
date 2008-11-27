@@ -6,7 +6,7 @@
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
 ;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
-;; Modified: 24 May 2008
+;; Modified: 26 May 2008
 ;; Version: 3.2
 ;; Keywords: pov, povray
 ;;
@@ -64,6 +64,10 @@
 ;; Type M-x byte-compile-file.
 ;;
 ;; To read pov-mode documentation, type M-x pov-mode then C-h m.
+;; To access the pov-mode info file type C-u C-h i RET. This will
+;; prompt you for  a file: give the pov-mode.info file that you can
+;; find in the pov-mode.el directory. Or install somewhere in your
+;; INFOPATH and run install-info pov-mode.info dir. 
 ;;
 ;; Download and install somewhere the InsertMenu directory, if you
 ;; want this nice feature. I'd recommend you to unpack it in the same
@@ -283,6 +287,8 @@
 ;;     Fixed a minor #macro indenting bug
 ;; 2008-05-24 Version 3.2 
 ;;     Written the texinfo manual. No code improvement (sorry)
+;; 2008-05-26 
+;;     Minor changes to the info manual. Thanks to Xah Lee.
 ;;     
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
