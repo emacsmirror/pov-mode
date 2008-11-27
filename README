@@ -1,4 +1,26 @@
 Please run first the setup.sh, which will ask you where can find the
 POV-Ray files and where your lisp files reside, then modify your
 .emacs following the instruction in the comments in
-"pov-mode.el". 
+"pov-mode.el" or in the output of this script
+
+If you are a Winzoz user, and you can't exec the setup.sh script, you
+*must* edit pov-mode.el manually. So, change all the occurrences of 
+SHARELIBSPOVRAY    	with the directory where platform-independent
+			     files of POV-Ray resides.
+EMACSLISPLIBRARY	with the directory where you unpack this package
+POVRAYHTMLDOCDIR	with the directory where resides the HTML
+			     documentation of POV-Ray.
+
+Then add this lines to your .emacs configuration file:
+
+(autoload 'pov-mode "\path\to\pov-mode" ; PLEASE EDIT THIS
+  "PoVray scene file mode" t)
+(setq auto-mode-alist
+	(append '(("\\.pov$" . pov-mode) 
+		  ("\\.inc$" . pov-mode)
+                ) auto-mode-alist))
+
+Finally, fix the name of the keyword index file via M-x
+customize-group pov.
+Let me know if it works. 
+MP

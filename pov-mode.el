@@ -4,7 +4,7 @@
 ;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
 ;; Modified: 16 Feb 2008
-;; Version: 2.15
+;; Version: 2.16
 ;; Keywords: pov, povray
 ;;
 ;;
@@ -205,19 +205,28 @@
 ;;     nor earlier versions of GNU emacs
 ;; 2008-02-16 Version 2.14 
 ;;    Rewrited from scratch the pov-keyword-help function
-;;    and commented out the old one, because the povuser.txt no more
-;;    exists. Now the pov-mode.el open an external browser to find
-;;    the documentation.  Try this and let me know! Browser can be
-;;    choosen in the M-x customize-group pov menu. However, don't
-;;    modify the name of directory and file names if this feature
-;;    works. You'll mess up things. This has been tested on the
-;;    documentation for pov-ray 3.6 (official binaries for linux).
-;;    Your documentation (for Mac or for previous or later version
-;;    of PoV-ray) may be somewhere else. Please let me know.
+;;     and commented out the old one, because the povuser.txt no more
+;;     exists. Now the pov-mode.el open an external browser to find
+;;     the documentation.  Try this and let me know! Browser can be
+;;     choosen in the M-x customize-group pov menu. However, don't
+;;     modify the name of directory and file names if this feature
+;;     works. You'll mess up things. This has been tested on the
+;;     documentation for pov-ray 3.6 (official binaries for linux).
+;;     Your documentation (for Mac or for previous or later version
+;;     of PoV-ray) may be somewhere else. Please let me know.
 ;; 2008-02-17 Version 2.15
 ;;    Created the tool-bar for GNU Emacs 22.1 (and maybe for previous releases
-;;    If you are running GNU Emacs < 22 and the toolbar works (with 2 icons, 
-;;    for view and for rendering, let me know)
+;;     If you are running GNU Emacs < 22 and the toolbar works (with 2 icons, 
+;;     for view and for rendering, let me know)
+;; 2008-02-17 Version 2.16
+;;    Fixed a portability bug. Use browse-url instead of browse-url-generic
+;;     Use the customize-group browse-url to choose the browser.
+;;     Thanks to Xah Lee for point this out.
+;;    Cleaned code for compilation. However something still remains for suspect 
+;;     compatibily with Xemacs. Please let me if Xemacs works with this package
+;;    Cleaned code and dropped prehistorical releases of (X)emacs that don't support
+;;     customization. Exists the old package. If you stuck with older versions, use
+;;     the older version of this package too. ;-)
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -246,8 +255,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO list (mp)
 ;; * portability
-;; * upgrade to PoV-ray 3.6
-;; *fix the bug with: Mark set
+;; * upgrade to PoV-ray 3.6 ; maybe not necessary. 
+;; ;; *fix the bug with: Mark set
 ;;  imenu--truncate-items: Wrong type argument: listp, 635
 ;;  imenu--cleanup: Wrong type argument: listp, 635
 ;;  Auto-saving...
@@ -259,7 +268,7 @@
 (if (if (save-match-data (string-match "Lucid\\|XEmacs" (emacs-version)))
 	(and (= emacs-major-version 19) (< emacs-minor-version 14))
       (and (= emacs-major-version 19) (< emacs-minor-version 29)))
-    (error "`font-pov' was written for Emacs 19.29/XEmacs 19.14 or later"))
+    (error "`pov-mode' was written for Emacs 19.29/XEmacs 19.14 or later"))
 
 (defvar font-pov-is-XEmacs19
   (and (not (null (save-match-data
@@ -295,7 +304,7 @@
   (and (not font-pov-is-XEmacs19)
        (not font-pov-is-XEmacs20)
        (not font-pov-is-XEmacs21)
-       (= 22 emacs-major-version)))
+       (<= 22 emacs-major-version))) ; this time let emacs grow
 
 (defvar font-pov-is-Emacs
   (or font-pov-is-Emacs19 
@@ -304,11 +313,82 @@
       font-pov-is-Emacs22))
 ;;; font-pov-is-Emacs returns t, font-pov-is-Emacs22 t, anything else nil
 
-(require 'cl)
-(require 'font-lock) ;;[TODO] Not nice to reqire it, the user should
-                     ;;       have a choise...
+(unless (or font-pov-is-XEmacs20-2 (or font-pov-is-Emacs20 font-pov-is-Emacs21 font-pov-is-Emacs22))
+  (error "PoV-mode requires Xemacs >= 20.2 or GNU Emacs >= 20"))
+    
 
-(defconst pov-mode-version '2.15   ;; this is the only occurence
+;; initialize the variables to avoid compilation warnings
+(defvar povray-command)
+(defvar pov-run-default)
+(defvar pov-run-test)
+(defvar pov-run-low)
+(defvar pov-run-mid)
+(defvar pov-run-high)
+(defvar pov-run-highest)
+(defvar pov-external-viewer-command)
+(defvar pov-external-view-options)
+(defvar pov-icons-location)
+(defvar default-toolbar)
+(defvar pov-toolbar)
+(defvar pov-turn-on-font-lock)
+(defvar pov-associate-pov-and-inc-with-pov-mode-flag)
+(defvar font-lock-face-attributes)
+(defvar font-lock-display-type)
+(defvar font-lock-face-attributes)
+(defvar font-lock-background-mode)
+;; pov-mode.el:963:4:Warning: set-face-foreground called with 5 arguments, but
+;;     accepts only 2-3
+;; pov-mode.el:965:4:Warning: set-face-foreground called with 5 arguments, but
+;;     accepts only 2-3
+;; pov-mode.el:967:4:Warning: set-face-foreground called with 5 arguments, but
+;;     accepts only 2-3
+;; pov-mode.el:965:67:Warning: set-face-foreground called with 5 arguments, but
+;;     accepts only 2-3
+;; pov-mode.el:966:71:Warning: set-face-foreground called with 5 arguments, but
+;;     accepts only 2-3
+;; these warnings are obsolete : we don't use set-face-foreground
+(defvar pov-imenu-in-menu)
+(defvar pov-im-menu)
+(defvar pov-indent-level)
+(defvar pov-indent-under-declare)
+(defvar pov-completion-list)
+(defvar pov-density-keywords)
+(defvar pov-isosurface-keywords)
+(defvar pov-bezier-keywords)
+(defvar pov-photons-keywords)
+(defvar pov-completion-list)
+(defvar pov-completion-list)
+(defvar pov-default-view-internal)
+(defvar pov-image-file)
+(defvar viewicon)
+(defvar rendericon)
+(defvar rendericon)
+(defvar viewicon)
+(defvar pov-documentation-directory)
+(defvar pov-documentation-keyword-index)
+(defvar pov-documentation-index)
+(defvar pov-include-dir)
+(defvar pov-default-view-internal)
+(defvar pov-internal-view)
+(defvar pov-external-view)
+(defvar pov-command-alist)
+(defvar pov-internal-view)
+(defvar pov-external-view)
+(defvar pov-command-alist)
+(defvar pov-external-view)
+(defvar pov-command-alist)
+(defvar pov-imenu-only-macros)
+(defvar prev-pos)
+(defvar imenu-pov-declare-regexp)
+(defvar pov-render-dialog-desc)
+(defvar pov-insertmenu-location)
+;; end initialisation
+
+(require 'cl)
+(require 'font-lock) 
+(require 'browse-url)
+
+(defconst pov-mode-version '2.16   ;; this is the only occurence
   "The povray mode version.")
 
 (defvar pov-tab-width 8)
@@ -446,11 +526,11 @@
 	:type 'directory
 	:group 'pov
 	)
-      (defcustom pov-external-browser "firefox"
-	"*The name of the command for the external browser"
-	:type 'string 
-	:group 'pov
-	)
+;;       (defcustom pov-external-browser "firefox"
+;; 	"*The name of the command for the external browser"
+;; 	:type 'string 
+;; 	:group 'pov
+;; 	)            NOT PORTABLE
       
       (defvar pov-external-view
 	"External view")
@@ -624,35 +704,11 @@ font-pov-number-face or font-lock-constant-face to view colored number"
 font-pov-keyword-face"
 	:type 'face
 	:group 'pov)
-      )
-)
-;      (defcustom font-pov-string-face t
-;	"*What color does strings have"
-;	:type 'face
-;	:group 'pov)
-
-;      (defcustom font-pov-texture-face t
-;	"*What color does textures have"
-;	:type 'face
-;	:group 'pov)
-
-;      (defcustom font-pov-object-modifier-face t
-;	"*What color does object modifiers have"
- ;	:type 'face
-;	:group 'pov)
+      ))
+	
 
 
-;; (if font-pov-standard-colors
-;;     (setq font-pov-keyword-face 'font-lock-keyword-face
-;; 	  font-pov-object-face 'font-lock-function-name-face))
-	  
 
-;; 	`(,pov-comment-face-regexp 0 font-lock-comment-face) OK
-;; 		`(,pov-object-face-regexp 1 font-lock-function-name-face)
-;; 		`(,pov-constant-face-regexp 0 font-lock-constant-face)
-;; 		`(,pov-include-face-regexp 1 font-lock-include-face)
-;; 		`(,pov-define-face-regexp 0 font-lock-reference-face)
-;; 		`(,pov-keyword-face-regexp 1 font-lock-keyword-face) ok
 
 ; Find where the menubar icons are placed, should be where pov-mode is...
 ;; (setq pov-icons-location 
@@ -709,57 +765,7 @@ font-pov-keyword-face"
 	   ["High render"   (pov-render-file "High quality render"   (buffer-file-name) nil) t]
 	   ["Render"        (pov-render-file "Render"                (buffer-file-name) nil) t]
 	   ["Cancel"        (pov-render-file "Render"                (buffer-file-name) nil) t]
-	   ))
-       )
-
-;;;;;;;;; SHALL WE BREAK? ;;;;;;;;;;;;;;
-;; ((font-pov-is-Emacs22)
-;;       (defvar toolbar-render-icon
-;;	 (if (featurep 'xpm)
-;;	     (let ((rendericon (concat pov-icons-location "povrender.xpm")))
-;;	       (toolbar-make-button-list (make-image-instance (vector 'xpm :file rendericon))))
-;;	 ))
-;;       (defvar toolbar-look-icon
-;;	 (if (featurep 'xpm)
-;;	     (let ((viewicon (concat pov-icons-location "povview.xpm")))
-;;	       (toolbar-make-button-list (make-image-instance (vector 'xpm :file viewicon))))
-;;	   ))
-;;       (defvar pov-toolbar 
-;;	 '(
-;;	   [toolbar-file-icon    toolbar-open    t "Open a file"] 
-;;	   [toolbar-folder-icon  toolbar-dired   t "Edit a directory"]
-;;	   [toolbar-disk-icon    toolbar-save    t "Save buffer"]
-;;	   [toolbar-printer-icon toolbar-print   t "Print buffer"]
-;;	   [toolbar-cut-icon     toolbar-cut     t "Kill region"]
-;;	   [toolbar-copy-icon    toolbar-copy    t "Copy region"]
-;;	   [toolbar-paste-icon   toolbar-paste   t "Paste from clipboard"]
-;;	   [toolbar-undo-icon    toolbar-undo    t "Undo edit"]
-;;	   [toolbar-spell-icon   toolbar-ispell  t "Check spelling"]
-;;	   [toolbar-replace-icon toolbar-replace t "Search & Replace"]
-;;	   nil
-;;	   [toolbar-render-icon  (pov-render-dialog) t "Configured Render the file"]
-;;;	   [toolbar-render-icon 
-;;;	    (pov-render-file "Render" (buffer-file-name) nil) 
-;;;	    t "Quick Render the file"]
-;;	   [toolbar-look-icon
-;;	    (if pov-default-view-internal
-;;		(pov-display-image-xemacs pov-image-file)
-;;	      (pov-display-image-externally pov-image-file nil))
-;;	    t "Show the rendered file"]
-;;	   ))
-;;       (defvar pov-render-dialog-desc
-;;	 '("Render Image"
-;;	   ["Test render"   (pov-render-file "Test quality render"   (buffer-file-name) nil) t]
-;;	   ["Low render"    (pov-render-file "Low quality render"    (buffer-file-name) nil) t]
-;;	   ["Medium render" (pov-render-file "Medium quality render" (buffer-file-name) nil) t]
-;;	   ["High render"   (pov-render-file "High quality render"   (buffer-file-name) nil) t]
-;;	   ["Render"        (pov-render-file "Render"                (buffer-file-name) nil) t]
-;;	   ["Cancel"        (pov-render-file "Render"                (buffer-file-name) nil) t]
-;;	   ))
-;;       ))
-;;
-
-) ; end cond 
+	   ))))
 
 
 (defun pov-toolbar ()
@@ -894,71 +900,74 @@ font-pov-keyword-face"
       (((class color)(background dark))      (:foreground "Limegreen" :bold t ))
       (t (:bold t)))
     "Font Lock mode face used to highlight operators in PoV."
-    :group 'font-pov-faces))
+    :group 'font-pov-faces)))
+;; this is obsolete and should be removed
  
- (font-pov-is-Emacs19
-  (unless (assq 'font-pov-variable-face font-lock-face-attributes)
-    (cond 
-     ;; FIXME: Add better conditions for grayscale.
-     ((memq font-lock-display-type '(mono monochrome grayscale greyscale
-					  grayshade greyshade))
-      (setq font-lock-face-attributes
-	    (append
-	     font-lock-face-attributes
-	     (list '(font-pov-variable-face nil nil t nil nil)
-		   '(font-pov-macro-name-face nil nil t nil nil)  ;; C.H.
-		   '(font-pov-keyword-face nil nil nil t nil)     ;; C.H.
-		   '(font-pov-object-face nil nil nil t nil)
-		   '(font-pov-number-face nil nil nil nil t)
-		   (list
-		    'font-pov-operator-face
-		    (cdr (assq 'background-color (frame-parameters)))
-		    (cdr (assq 'foreground-color (frame-parameters)))
-		    nil nil nil)))))
-     ((eq font-lock-background-mode 'light) ; light color background
-      (setq font-lock-face-attributes
-	    (append 
-	     font-lock-face-attributes
-	     ;;;FIXME: These won't follow font-lock-type-face's changes.
-	     ;;;       Should I change to a (copy-face) scheme?
-	     '((font-pov-variable-face "DarkOliveGreen" nil t nil nil)
-	       (font-pov-macro-name-face "DarkOliveGreen" nil t nil nil)  ;; C.H.
-	       (font-pov-keyword-face "grey50")                           ;; C.H.
-	       (font-pov-number-face "DarkOliveGreen" nil nil t nil)
-	       (font-pov-object-face "grey50")
-	       (font-pov-directive-face "red" nil t nil nil)))))
-     (t			; dark color background
-      (setq font-lock-face-attributes
-	    (append 
-	     font-lock-face-attributes
-	     '((font-pov-varible-face "OliveDrab" nil t nil nil)
-	       (font-pov-macro-name-face "OliveDrab" nil t nil nil)   ;; C.H.
-	       (font-pov-keyword-face "grey60")                       ;; C.H.
-	       (font-pov-number-face "OliveDrab" nil nil t nil)
-	       ;; good are > LightSeaGreen, LightCoral, coral, orchid, orange
-	       (font-pov-object-face "grey60")
-	       (font-pov-directive-face "red" nil t nil nil))))))))
- (t
-  ;;; XEmacs < version 20.2
-  (make-face 'font-pov-variable-face "Face to use for PoV variables.")
-  (make-face 'font-pov-macro-name-face "Face to use for PoV macros.")      ;; C.H.
-  (make-face 'font-pov-keyword-face "Face to use for PoV keywords.")       ;; C.H.
-  (make-face 'font-pov-directive-face "Face to use for PoV directives.")
-  (make-face 'font-pov-number-face "Face to use for PoV numbers.")
-  (make-face 'font-pov-operator-face "Face to use for PoV operators.")
-  (make-face 'font-pov-csg-face "Face to use for PoV csg.")
-  (make-face 'font-pov-object-face "Face to use for PoV objects.")
+;;  (font-pov-is-Emacs19 ;; DROP ME
+;;   (unless (assq 'font-pov-variable-face font-lock-face-attributes)
+;;     (cond 
+;;      ;; FIXME: Add better conditions for grayscale.
+;;      ((memq font-lock-display-type '(mono monochrome grayscale greyscale
+;; 					  grayshade greyshade))
+;;       (setq font-lock-face-attributes
+;; 	    (append
+;; 	     font-lock-face-attributes
+;; 	     (list '(font-pov-variable-face nil nil t nil nil)
+;; 		   '(font-pov-macro-name-face nil nil t nil nil)  ;; C.H.
+;; 		   '(font-pov-keyword-face nil nil nil t nil)     ;; C.H.
+;; 		   '(font-pov-object-face nil nil nil t nil)
+;; 		   '(font-pov-number-face nil nil nil nil t)
+;; 		   (list
+;; 		    'font-pov-operator-face
+;; 		    (cdr (assq 'background-color (frame-parameters)))
+;; 		    (cdr (assq 'foreground-color (frame-parameters)))
+;; 		    nil nil nil)))))
+;;      ((eq font-lock-background-mode 'light) ; light color background
+;;       (setq font-lock-face-attributes
+;; 	    (append 
+;; 	     font-lock-face-attributes
+;; 	     ;;;FIXME: These won't follow font-lock-type-face's changes.
+;; 	     ;;;       Should I change to a (copy-face) scheme?
+;; 	     '((font-pov-variable-face "DarkOliveGreen" nil t nil nil)
+;; 	       (font-pov-macro-name-face "DarkOliveGreen" nil t nil nil)  ;; C.H.
+;; 	       (font-pov-keyword-face "grey50")                           ;; C.H.
+;; 	       (font-pov-number-face "DarkOliveGreen" nil nil t nil)
+;; 	       (font-pov-object-face "grey50")
+;; 	       (font-pov-directive-face "red" nil t nil nil)))))
+;;      (t			; dark color background
+;;       (setq font-lock-face-attributes
+;; 	    (append 
+;; 	     font-lock-face-attributes
+;; 	     '((font-pov-varible-face "OliveDrab" nil t nil nil)
+;; 	       (font-pov-macro-name-face "OliveDrab" nil t nil nil)   ;; C.H.
+;; 	       (font-pov-keyword-face "grey60")                       ;; C.H.
+;; 	       (font-pov-number-face "OliveDrab" nil nil t nil)
+;; 	       ;; good are > LightSeaGreen, LightCoral, coral, orchid, orange
+;; 	       (font-pov-object-face "grey60")
+;; 	       (font-pov-directive-face "red" nil t nil nil))))))))
+;;  (t   ;; DROP ME
+;;   ;;; XEmacs < version 20.2
+;;   (make-face 'font-pov-variable-face "Face to use for PoV variables.")
+;;   (make-face 'font-pov-macro-name-face "Face to use for PoV macros.")      ;; C.H.
+;;   (make-face 'font-pov-keyword-face "Face to use for PoV keywords.")       ;; C.H.
+;;   (make-face 'font-pov-directive-face "Face to use for PoV directives.")
+;;   (make-face 'font-pov-number-face "Face to use for PoV numbers.")
+;;   (make-face 'font-pov-operator-face "Face to use for PoV operators.")
+;;   (make-face 'font-pov-csg-face "Face to use for PoV csg.")
+;;   (make-face 'font-pov-object-face "Face to use for PoV objects.")
 
-  (make-face-bold 'font-pov-object-face)
+;;   (make-face-bold 'font-pov-object-face)
   
-  ;; XEmacs uses a tag-list thingy to determine if we are using color
-  ;;  or mono (and I assume a dark background).
-  (set-face-foreground 'font-pov-object-face "green4" 'global nil 'append)
-  (set-face-foreground 'font-pov-number-face "green" 'global nil 'append)
-  (set-face-foreground 'font-pov-variable-face "red" 'global nil 'append)
-  (set-face-foreground 'font-pov-macro-name-face "blue2" 'global nil 'append)   ;; C.H.
-  (set-face-foreground 'font-pov-keyword-face "blue4" 'global nil 'append)      ;; C.H.
-  ))
+;;   ;; XEmacs uses a tag-list thingy to determine if we are using color
+;;   ;;  or mono (and I assume a dark background).
+;;   (set-face-foreground 'font-pov-object-face "green4" 'global nil 'append)
+;;   (set-face-foreground 'font-pov-number-face "green" 'global nil 'append)
+;;   (set-face-foreground 'font-pov-variable-face "red" 'global nil 'append)
+;;   (set-face-foreground 'font-pov-macro-name-face "blue2" 'global nil 'append)   ;; C.H.
+;;   (set-face-foreground 'font-pov-keyword-face "blue4" 'global nil 'append)      ;; C.H.
+;;   )
+;; )
+;; END OBSOLETE CODE
 
 
 (font-pov-setup) ;; Setup and register the fonts...
@@ -1129,7 +1138,7 @@ font-pov-keyword-face"
 ;; -- end C.H --
 
 (defun pov-mode nil
-  "Major mode for editing PoV files. (Version 2.15)
+  "Major mode for editing PoV files. (Version 2.16)
 
    In this mode, TAB and \\[indent-region] attempt to indent code
 based on the position of {} pairs and #-type directives.  The variable
@@ -1823,8 +1832,8 @@ character number of the character following `begin' or START if not found."
 
 (defun pov-keyword-help nil
    "look up the appropriate place for keyword in the POV documentation 
-using an external browser. Keyword can be entered and autocompleteted, 
-default is word at point"
+using an external browser (set by browse-url.el). Keyword can be entered 
+and autocompleteted, default is word at point"
  (interactive)
   (let* ((default (current-word))
 	 (input (completing-read
@@ -1837,7 +1846,7 @@ default is word at point"
 		  (concat pov-documentation-directory pov-documentation-keyword-index )))
 	 (buffer-index (find-file-noselect
 			(concat pov-documentation-directory pov-documentation-index)))
-	 ( browse-url-generic-program pov-external-browser )
+	; ( browse-url-generic-program pov-external-browser )
 	 target-file)
     (save-excursion 
       (set-buffer buffer)
@@ -1847,15 +1856,14 @@ default is word at point"
       (setq case-fold-search t) ;; it's buffer-local 
       (if (re-search-forward 
 	   (concat "<code>" kw "</code>") 
-	   (save-excursion 
-	      (search-forward "All reserved words are fully lower case" )
-	      (point)) t)
+	   (save-excursion        ; this doesn't need, because the index is the first occurrence
+	   (search-forward "<code>z</code>")) t)
 	  (progn (re-search-backward  "href=\"\\([^\"]+\\)\">")
 		 (setq target-file (match-string-no-properties 1))
 		 (if (not (string-match "s_.*\\.html" target-file))
 		   (setq target-file (concat pov-documentation-keyword-index  target-file)))
 		     	   ;	     (message "DEBUG %s" (concat "file://" 
-          (browse-url-generic (concat "file://" 
+          (browse-url (concat "file://" 
 				       pov-documentation-directory  
 				       target-file)))
 	(progn (set-buffer buffer-index)
@@ -1866,7 +1874,7 @@ default is word at point"
 	       (if  (re-search-forward (concat "^[ \t]*" kw) (save-excursion (point-max)) t) ; just the 1^ entry
 		    (progn (re-search-forward "href=\"\\([^\"]+\\)\">")
 		   	 (setq target-file (match-string-no-properties 1))
-			 (browse-url-generic (concat "file://" 
+			 (browse-url (concat "file://" 
 						     pov-documentation-directory  
 						     target-file)))
 		 (message "Couldn't find keyword: %s, maybe you misspelled it" kw))))
