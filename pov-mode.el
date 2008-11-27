@@ -3,8 +3,8 @@
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
 ;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
-;; Modified: 23 Feb 2008
-;; Version: 2.18
+;; Modified: 28 Feb 2008
+;; Version: 2.19
 ;; Keywords: pov, povray
 ;;
 ;;
@@ -235,9 +235,9 @@
 ;;     suspect compatibily with Xemacs. Please let me if Xemacs works 
 ;;     with this package.
 ;;    Cleaned code and dropped prehistorical releases of (X)emacs that 
-;;     don't support customization. Exists the old package. If you stuck
-;;     with older versions, use the older version of this package too. 
-;;     ;-)
+;;     don't support customization. The old package still exists. If 
+;;     you stuck with older versions, use the older version of this 
+;;     package too.   ;-)   
 ;; 2008-02-20 Version 2.17
 ;;    Added a menu for rendering and one for the preview. I didn't use 
 ;;     the lisp libraries, just modified the keymap. Needs testing with 
@@ -251,6 +251,14 @@
 ;;     Not tested with xemacs
 ;;    I consider this release quite stable. If you find a bug feel 
 ;;     free to contact me. I'll try to fix it.
+;; 2008-02-24 Version 2.19
+;;    Fixed a minor bug that prevented the viewer to get the file name.
+;;     This happens when the path directory is too long and the output of
+;;     povray wrap words. I didn't discard the old code. If the buffer 
+;;     search fails, it use the basename of current buffer appending 
+;;     the default extension (png for unix, bmp for windoze).
+;;    Added a lot of keybindings for rendering and viewers.
+;;    
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -365,11 +373,9 @@
 (defvar pov-bezier-keywords)
 (defvar pov-photons-keywords)
 (defvar pov-completion-list)
-(defvar pov-completion-list)
 (defvar pov-default-view-internal)
 (defvar pov-image-file)
-(defvar viewicon)
-(defvar rendericon)
+(defvar pov-default-image-extension)
 (defvar rendericon)
 (defvar viewicon)
 (defvar pov-documentation-directory)
@@ -378,11 +384,6 @@
 (defvar pov-include-dir)
 (defvar pov-default-view-internal)
 (defvar pov-internal-view)
-(defvar pov-external-view)
-(defvar pov-command-alist)
-(defvar pov-internal-view)
-(defvar pov-external-view)
-(defvar pov-command-alist)
 (defvar pov-external-view)
 (defvar pov-command-alist)
 (defvar pov-imenu-only-macros)
@@ -396,7 +397,7 @@
 (require 'font-lock) 
 (require 'browse-url)
 
-(defconst pov-mode-version '2.18   ;; this is the only occurence
+(defconst pov-mode-version '2.19   ;; this is the only occurence
   "The povray mode version.")
 
 (defvar pov-tab-width)
@@ -477,7 +478,11 @@
 	:type 'string
 	:group 'pov)
 
-      (defcustom pov-external-viewer-command "display" 
+      (defcustom pov-external-viewer-command 
+	(cond
+	 ((memq system-type '(windows-nt ms-dos cygwin darwin))
+	  "open")
+	 (t "display"))            ;; MP
 	;; It seems that ImageMagick is quite popular
 	"*The external viewer to call."
 	:type 'string
@@ -485,6 +490,17 @@
 
       (defcustom pov-external-view-options "%s"
 	"*The options for the viewer; %s is replaced with the name of the rendered image."
+	:type 'string
+	:group 'pov)
+
+      (defcustom  pov-default-image-extension 
+	(cond
+	 ((memq system-type '(windows-nt ms-dos cygwin))
+	  "bmp")
+	 (t "png"))  ;; MP
+ 	"*The default extension of the output image. Windows user should set it to bmp
+It you are going to customize this options, you must customize the options of the 
+povray commands also. So beware!"
 	:type 'string
 	:group 'pov)
 
@@ -615,14 +631,13 @@ This may take a while on large files.  Maybe disable this on slow systems."
 	:group 'pov)
 
       (defcustom pov-imenu-in-menu t 
-	"*Non-nil means have #locals and #declares in a menu 
-called PoV in the menubar. This may take a while on large files.  
-Maybe disable this on slow systems." 
+	"*Non-nil means have #locals, #declares, #macros and something else
+in a menu called PoV in the menubar. This permits to jump to the point of the 
+buffer where this # has been declared."
 	:type 'boolean
 	:group 'pov)
-;; this maybe mess up things FIX-ME
 ;; CH
-      (defcustom pov-imenu-only-macros t
+      (defcustom pov-imenu-only-macros nil
         "*Non-nil means to restrict imenu to macro declarations."
         :type 'boolean
         :group 'pov)
@@ -1074,7 +1089,7 @@ font-pov-keyword-face"
 ;; -- end C.H --
 
 (defun pov-mode nil
-  "Major mode for editing PoV files. (Version 2.18)
+  "Major mode for editing PoV files. (Version 2.19)
 
    In this mode, TAB and \\[indent-region] attempt to indent code
 based on the position of {} pairs and #-type directives.  The variable
@@ -1709,37 +1724,63 @@ character number of the character following `begin' or START if not found."
 	   (momentary-string-display "" (point))
 	   (delete-window (get-buffer-window (get-buffer "*Completions*")))))))
 
+(defun pov-get-the-default-image-name nil
+  "Return the default file name of the rendered image"
+  (concat (file-name-sans-extension (buffer-file-name)) "."
+	  pov-default-image-extension))
+
+
 
 ;; wrappers
 (defun tool-bar-command-render nil
-  "Wrapper for the tool-bar"
+  "Wrapper for the tool-bar: render the buffer at default quality"
   (interactive)
   (pov-render-file "Render" (buffer-file-name) nil))
+
 (defun menu-render-test nil
+  "Wrapper for the menu and the keybinding: render the buffer at test quality
+without questions"
   (interactive)
   (pov-render-file "Test quality render" (buffer-file-name) nil))
+
 (defun menu-render-low nil
+  "Wrapper for the menu and the keybinding: render the buffer at low quality
+without questions"
   (interactive)
   (pov-render-file "Low quality render" (buffer-file-name) nil))
+
 (defun menu-render-mid nil
+  "Wrapper for the menu and the keybinding: render the buffer at medium quality
+without questions"
   (interactive)
   (pov-render-file "Medium quality render" (buffer-file-name) nil))
+
 (defun menu-render-high nil
+  "Wrapper for the menu and the keybinding: render the buffer at high quality
+without questions"
   (interactive)
   (pov-render-file "High quality render" (buffer-file-name) nil))
+
 (defun menu-render-highest nil
+  "Wrapper for the menu and the keybinding: render the buffer at highest quality
+without questions"
   (interactive)
   (pov-render-file "Highest quality render" (buffer-file-name) nil))
+
 (defun tool-bar-command-view nil
-  "Wrapper for the tool-bar"
+  "Wrapper for the tool-bar: view the rendered image"
   (interactive)
   (if pov-default-view-internal
       (pov-display-image-xemacs pov-image-file)
     (pov-display-image-externally pov-image-file nil)))
+
 (defun menu-external-viewer nil
+  "View the rendered image using the external viewer"
   (interactive)
   (pov-display-image-externally pov-image-file nil))
+
 (defun menu-internal-viewer nil
+  "View the rendered image using the internal viewer"
   (interactive)
   (pov-display-image-xemacs pov-image-file))
 
@@ -1752,13 +1793,17 @@ character number of the character following `begin' or START if not found."
       (define-key pov-mode-map "\t" 'pov-tab)
       (define-key pov-mode-map "\r" 'pov-newline)
       (define-key pov-mode-map "\C-c\C-c" 'pov-command-query) ;AS
-      ;;      (define-key pov-mode-map [(shift f1)] 'pov-keyword-help) ;AS ; this sucks MP
-      (define-key pov-mode-map "\C-c\C-h" 'pov-keyword-help) 
-      (define-key pov-mode-map "\C-c\C-l" 'pov-show-render-output) ;AS
-      ;;      (define-key pov-mode-map "\C-ci" 'pov-open-include-file) ; Isn't this reserved? MP
-      (define-key pov-mode-map "\C-c\C-i" 'pov-open-include-file) ; Isn't this reserved? MP
+       (define-key pov-mode-map "\C-c\C-h" 'pov-keyword-help) 
+      (define-key pov-mode-map "\C-c\C-l" 'pov-show-render-output) 
+      (define-key pov-mode-map "\C-c\C-rt" 'menu-render-test)
+      (define-key pov-mode-map "\C-c\C-rl" 'menu-render-low)
+      (define-key pov-mode-map "\C-c\C-rm" 'menu-render-mid)
+      (define-key pov-mode-map "\C-c\C-rh" 'menu-render-high)      
+      (define-key pov-mode-map "\C-c\C-rx" 'menu-render-highest)
+      (define-key pov-mode-map "\C-c\C-o" 'pov-open-include-file) 
       (define-key pov-mode-map "\M-\t" 'pov-complete-word)
-
+      (define-key pov-mode-map "\C-c\C-ve" 'menu-external-viewer)      
+      (define-key pov-mode-map "\C-c\C-vi" 'menu-internal-viewer)      
       ;;  View menu
 
       (define-key pov-mode-map [menu-bar View] 
@@ -1860,8 +1905,8 @@ and autocompleteted, default is word at point"
       (setq case-fold-search t) ;; it's buffer-local 
       (if (re-search-forward 
 	   (concat "<code>" kw "</code>") 
-	  (save-excursion        ; this doesn't need, because the index is the first occurrence
-	      (search-forward "<code>z</code>")) t) ; this doesn't need. 
+	  (save-excursion       
+	      (search-forward "<code>z</code>")) t) 
 	  (progn (re-search-backward  "href=\"\\([^\"]+\\)\">")
 		 (setq target-file (match-string-no-properties 1))
 		 (if (not (string-match "s_.*\\.html" target-file))
@@ -2085,13 +2130,21 @@ and autocompleteted, default is word at point"
   "Filter to process povray output. Scrolls and extracts the
 filename of the output image (XXX with a horrible buffer-local-hack...)"
   ;(message (format "DEBUG buffer name %s" (buffer-name (current-buffer))))
+;; I'm going to use (concat (file-name-sans-extension
+;; (buffer-file-name)) ".png"). Much simplier, and avoids the
+;; long-long-path-bug
   (let ((image-file nil))
     (save-excursion
       (set-buffer (process-buffer process))
       (save-excursion
 	;; find out how our file is called
-	(if (string-match "^ *Output file: \\(.*\\), [0-9]+ bpp .+$" string)
+	(if (string-match "^ *Output file: \\(.*\\), [0-9]+ bpp.*$" string)
 	    (setq image-file (match-string 1 string)))
+;; 	  (setq
+;; 	  image-file (concat 
+;; 		      (file-name-sans-extension (buffer-file-name)) ".png"))) 
+;; ;; this mess up things. Why?
+;; FIXME: windoz users should set this to .bmp
 	(goto-char (process-mark process))
 	(insert-before-markers string)
 	(set-marker (process-mark process) (point))))
@@ -2109,8 +2162,10 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
   "Display the rendered image using external viewer"
   ;;if we don't have a file, prompt for one
   (when (or (not file) (string-equal file ""))
-    (setq file
-	  (read-file-name "Which image file should I display? ")))
+    (if (file-exists-p (pov-get-the-default-image-name))
+	(setq file (pov-get-the-default-image-name)) ;; MP
+      (setq file
+	  (read-file-name "Which image file should I display? "))))
   (let ((view-command nil)
 	(view-options nil)
 	(view-history nil)
@@ -2142,11 +2197,13 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
     ;;	'(lambda (process event)
 
 (defun pov-display-image-xemacs (file)
-  "Display the rendered image in a Xemacs or GNU Emacs 22 frame"
+  "Display the rendered image in a Xemacs or GNU Emacs 22."
   ;;TODO: set frame according to image-size (seems difficult)
   (when (or (not file) (string-equal file ""))
+    (if (file-exists-p (pov-get-the-default-image-name))
+	(setq file (pov-get-the-default-image-name))
       (setq file
-	    (read-file-name "Which image file should I display? ")))
+	  (read-file-name "Which image file should I display? "))))
   (let ((buffer (get-buffer-create
 		 (format "*Povray View %s*" file))))
 ;; (format "*Povray View %s" "prova.png")
@@ -2172,12 +2229,10 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 	     (insert-image (create-image file) )
 	     (insert "              \n\nType C-x b to go back!") ;; avoid blinking cursor
 	     (goto-char  (- (point-max) 1))
-	     (switch-to-buffer (current-buffer))
-
-	     )))))
+	     (switch-to-buffer (current-buffer)))))))
 
 ; *************
-; *** Imenu ***  ;; need a fix ;; priority:critical
+; *** Imenu ***  
 ; *************
 (defun pov-helper-imenu-setup ()
   (interactive)
@@ -2200,7 +2255,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 
 
 ;;; THE FOLLOWING LINES WERE COMMENTED OUT BECAUSE MESSED UP ALL
-;;  THIS BUG WAS *CRITICAL*
+;;  THIS BUG WAS *CRITICAL* . MP
 ;; ;; C.H.: to avoid flooding the function menu set 'pov-imenu-only-macros'
 ;; (if pov-imenu-only-macros
 ;;     (defvar imenu-pov-declare-regexp
