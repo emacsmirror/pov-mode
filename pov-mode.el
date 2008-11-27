@@ -227,6 +227,10 @@
 ;;    Cleaned code and dropped prehistorical releases of (X)emacs that don't support
 ;;     customization. Exists the old package. If you stuck with older versions, use
 ;;     the older version of this package too. ;-)
+;; 2008-02-20 Version 2.17
+;;    Added a menu for rendering and one for the preview. I didn't use the lisp
+;;     libraries, just modified the keymap. Needs testing with xemacs.
+;;    Upgraded to POV-Ray 3.6
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -378,7 +382,7 @@
 (defvar pov-external-view)
 (defvar pov-command-alist)
 (defvar pov-imenu-only-macros)
-(defvar prev-pos)
+(defvar prev-pos nil) ; maybe this will solve a bug with imenu
 (defvar imenu-pov-declare-regexp)
 (defvar pov-render-dialog-desc)
 (defvar pov-insertmenu-location)
@@ -1774,6 +1778,39 @@ character number of the character following `begin' or START if not found."
 	   (delete-window (get-buffer-window (get-buffer "*Completions*")))))))
 
 
+;; wrappers
+(defun tool-bar-command-render nil
+  "Wrapper for the tool-bar"
+  (interactive)
+  (pov-render-file "Render" (buffer-file-name) nil))
+(defun menu-render-test nil
+  (interactive)
+  (pov-render-file "Test quality render" (buffer-file-name) nil))
+(defun menu-render-low nil
+  (interactive)
+  (pov-render-file "Low quality render" (buffer-file-name) nil))
+(defun menu-render-mid nil
+  (interactive)
+  (pov-render-file "Medium quality render" (buffer-file-name) nil))
+(defun menu-render-high nil
+  (interactive)
+  (pov-render-file "High quality render" (buffer-file-name) nil))
+(defun menu-render-highest nil
+  (interactive)
+  (pov-render-file "Highest quality render" (buffer-file-name) nil))
+(defun tool-bar-command-view nil
+  "Wrapper for the tool-bar"
+  (interactive)
+  (if pov-default-view-internal
+      (pov-display-image-xemacs pov-image-file)
+    (pov-display-image-externally pov-image-file nil)))
+(defun menu-external-viewer nil
+  (interactive)
+  (pov-display-image-externally pov-image-file nil))
+(defun menu-internal-viewer nil
+  (interactive)
+  (pov-display-image-xemacs pov-image-file))
+
 ;;; initialize the keymap if it doesn't already exist
 (if (null pov-mode-map)
     (progn
@@ -1782,13 +1819,70 @@ character number of the character following `begin' or START if not found."
       (define-key pov-mode-map "}" 'pov-close)
       (define-key pov-mode-map "\t" 'pov-tab)
       (define-key pov-mode-map "\r" 'pov-newline)
-      (define-key pov-mode-map "\C-c\C-c" 'pov-command-query);AS
-;;      (define-key pov-mode-map [(shift f1)] 'pov-keyword-help) ;AS ; this sucks MP
+      (define-key pov-mode-map "\C-c\C-c" 'pov-command-query) ;AS
+      ;;      (define-key pov-mode-map [(shift f1)] 'pov-keyword-help) ;AS ; this sucks MP
       (define-key pov-mode-map "\C-c\C-h" 'pov-keyword-help) 
       (define-key pov-mode-map "\C-c\C-l" 'pov-show-render-output) ;AS
-;;      (define-key pov-mode-map "\C-ci" 'pov-open-include-file) ; Isn't this reserved? MP
+      ;;      (define-key pov-mode-map "\C-ci" 'pov-open-include-file) ; Isn't this reserved? MP
       (define-key pov-mode-map "\C-c\C-i" 'pov-open-include-file) ; Isn't this reserved? MP
-      (define-key pov-mode-map "\M-\t" 'pov-complete-word)))
+      (define-key pov-mode-map "\M-\t" 'pov-complete-word)
+
+      ;;  View menu
+
+      (define-key pov-mode-map [menu-bar View] 
+	(cons "View" (make-sparse-keymap "View")))
+      (define-key pov-mode-map [menu-bar View ext]
+	'(menu-item "External" menu-external-viewer
+		    :help "View the image using an external viewer")) 
+      (define-key pov-mode-map [menu-bar View int]
+	'(menu-item "Internal" menu-internal-viewer
+		    :help "View the image internally"))
+      ;; Render menu
+      (define-key pov-mode-map [menu-bar Render]
+	(cons "Render" (make-sparse-keymap "Render")))
+
+      (define-key pov-mode-map [menu-bar Render highest]
+	'(menu-item "Highest quality"  menu-render-highest
+		    :help "Go! Render at highest quality!"))
+
+      (define-key pov-mode-map [menu-bar Render high]
+	'(menu-item "High quality"  menu-render-high
+		    :help "Render at high quality!"))
+
+      (define-key pov-mode-map [menu-bar Render mid]
+	'(menu-item "Medium quality"  menu-render-mid
+		    :help "Render at medium quality"))
+
+      (define-key pov-mode-map [menu-bar Render low]
+	'(menu-item "Low quality"  menu-render-low
+		    :help "Render at low quality"))
+
+      (define-key pov-mode-map [menu-bar Render test]
+	'(menu-item "Test quality"  menu-render-test
+		    :help "Just test quality"))
+
+      (define-key pov-mode-map [menu-bar Render default]
+	'(menu-item "Default"  tool-bar-command-render
+		    :help "Render at default quality"))
+      ;; tool-bar entries for GNU Emacs
+      (if font-pov-is-Emacs
+	  (progn 
+	    (setq viewicon (concat pov-icons-location "povview.xpm")
+		  rendericon (concat pov-icons-location "povrender.xpm"))
+	    (define-key pov-mode-map [tool-bar  render] 
+	      ;;      '(menu-item "Render" pov-render-dialog
+	      `(menu-item "Render this file using the default quality" tool-bar-command-render
+			  :image ,(create-image rendericon )))
+	    ;;  :type xpm 
+	    ;; :file "EMACSLISPLIBRARY/povrender.xpm")))
+	    (define-key pov-mode-map [tool-bar view] 
+	      `(menu-item "Preview"   tool-bar-command-view
+			  :image ,(create-image viewicon)))))))
+      ;;  :type xpm  ;; these two paths need a fix. (concat etc. etc.) doesn't work. Why?
+      ;; 			  :file "EMACSLISPLIBRARY/povview.xpm" )))))
+
+
+     
 
 ;; Hack to redindent end/else/break
 (if pov-autoindent-endblocks
@@ -1796,32 +1890,10 @@ character number of the character following `begin' or START if not found."
       (define-key pov-mode-map "e" 'pov-autoindent-endblock)
       (define-key pov-mode-map "k" 'pov-autoindent-endblock)
       (define-key pov-mode-map "d" 'pov-autoindent-endblock)))
-(defun tool-bar-command-render nil
-  "Wrapper for the tool-bar"
-  (interactive)
-  (pov-render-file "Render" (buffer-file-name) nil))
-(defun tool-bar-command-view nil
-  "Wrapper for the tool-bar"
-  (interactive)
-  (if pov-default-view-internal
-      (pov-display-image-xemacs pov-image-file)
-    (pov-display-image-externally pov-image-file nil)))
-;; tool-bar entries for GNU Emacs
-(if font-pov-is-Emacs
-    (progn 
-      (setq viewicon (concat pov-icons-location "povview.xpm")
-	    rendericon (concat pov-icons-location "povrender.xpm"))
-      (define-key pov-mode-map [tool-bar  render] 
-	;;      '(menu-item "Render" pov-render-dialog
-	`(menu-item "Render this file using the default quality" tool-bar-command-render
-		    :image ,(create-image rendericon )))
-      ;;  :type xpm 
-      ;; :file "EMACSLISPLIBRARY/povrender.xpm")))
-      (define-key pov-mode-map [tool-bar view] 
-	`(menu-item "Preview"   tool-bar-command-view
-		    :image ,(create-image viewicon)))))
-;;  :type xpm  ;; these two paths need a fix. (concat etc. etc.) doesn't work. Why?
-;; 			  :file "EMACSLISPLIBRARY/povview.xpm" )))))
+
+
+
+
 
 
 ;; ***********************
@@ -1856,8 +1928,8 @@ and autocompleteted, default is word at point"
       (setq case-fold-search t) ;; it's buffer-local 
       (if (re-search-forward 
 	   (concat "<code>" kw "</code>") 
-	   (save-excursion        ; this doesn't need, because the index is the first occurrence
-	   (search-forward "<code>z</code>")) t)
+	  (save-excursion        ; this doesn't need, because the index is the first occurrence
+	      (search-forward "<code>z</code>")) t) ; this doesn't need. 
 	  (progn (re-search-backward  "href=\"\\([^\"]+\\)\">")
 		 (setq target-file (match-string-no-properties 1))
 		 (if (not (string-match "s_.*\\.html" target-file))
@@ -2163,6 +2235,8 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 	 ;;    (make-frame-visible)
 	     ;; (make-frame-visible)
 	     (clear-image-cache) ;; really important!
+	     (insert "\n")
+	     (goto-char (point-max))
 	     (insert-image (create-image file) )
 	     (insert "              \n\nType C-x b to go back!") ;; avoid blinking cursor
 	     (goto-char  (- (point-max) 1))
