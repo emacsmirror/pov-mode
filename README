@@ -5,13 +5,12 @@ Step 1: Adding the load-path and auto-mode setup.
 Add the following code to your emacs customization file (at
 "~/.emacs").
 
-(add-to-list 'load-path "~/john/pov-mode-mp-2.20")
+(add-to-list 'load-path "~/john/pov-mode-3.x")
 (autoload 'pov-mode "pov-mode" "PoVray scene file mode" t)
-(setq auto-mode-alist (append '(("\\.pov\\'" . pov-mode) 
-                                ("\\.inc\\'" . pov-mode))
-                              auto-mode-alist))
+(add-to-list 'auto-mode-alist '("\\.pov\\'" . pov-mode))
+(add-to-list 'auto-mode-alist '("\\.inc\\'" . pov-mode))
 
-The "~/john/pov-mode-mp-2.20" should be the path to the file
+The "~/john/pov-mode-3.x" should be the path to the file
 pov-mode.el .
 
 Now, restart emacs.

@@ -3,8 +3,8 @@
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
 ;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
-;; Modified: 05 March 2008
-;; Version: 3.0
+;; Modified: 18 April 2008
+;; Version: 3.1
 ;; Keywords: pov, povray
 ;;
 ;;
@@ -44,13 +44,12 @@
 
 ;; Add the following code to your emacs init file.
 
-;; (add-to-list 'load-path "~/john/pov-mode-mp-2.20")
+;; (add-to-list 'load-path "~/john/pov-mode-3.x")
 ;; (autoload 'pov-mode "pov-mode" "PoVray scene file mode" t)
-;; (setq auto-mode-alist (append '(("\\.pov\\'" . pov-mode)
-;;                                 ("\\.inc\\'" . pov-mode))
-;;                               auto-mode-alist))
+;; (add-to-list 'auto-mode-alist '("\\.pov\\'" . pov-mode))
+;; (add-to-list 'auto-mode-alist '("\\.inc\\'" . pov-mode))
 ;;
-;; The "~/john/pov-mode-mp-2.20" should be the path to the file pov-mode.el .
+;; The "~/john/pov-mode-3.x" should be the path to the file pov-mode.el .
 ;;
 ;; Once installed, you may need to set pov-include-dir and
 ;; pov-documentation-directory. You can set these by using M-x
@@ -271,6 +270,10 @@
 ;;    There is a commented function pov-online-search for keyword
 ;;     lookup in the on-line documentation, but still needs a lot of
 ;;     development. 
+;; 2008-04-18 Version 3.1 just a minor change
+;;     Resized the icons to suite the 24x24 pixel standard
+;;     Added a new Misc menu for comment, uncomment and doc lookup
+;;     Fixed the pov-open-include-file function to prompt to existing files
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -281,9 +284,12 @@
 ;;           Marco Pessotto
 ;;        <marco.erika@gmail.com>
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-
+;;               TODO
+;;
+;;    Fix the standard include file command
+;;    Write the texinfo documentation
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; Better safe than sorry, lets fail if you are using a (very?) old
 ;; version of (X)Emacs.
@@ -388,11 +394,14 @@
 (defvar pov-errors)
 ;; end initialisation
 
+
 (require 'cl)
+(require 'imenu)
 (require 'font-lock) 
 (require 'browse-url)
+(require 'newcomment)
 
-(defconst pov-mode-version '3.0   ;; this is the only occurence
+(defconst pov-mode-version '3.1   ;; this is the only occurence
   "The povray mode version.")
 
 (defvar pov-tab-width)
@@ -1020,7 +1029,7 @@ font-pov-keyword-face"
 ;; -- end C.H --
 
 (defun pov-mode nil
-  "Major mode for editing PoV files. (Version 3.0)
+  "Major mode for editing PoV files. (Version 3.1)
 
    In this mode, TAB and \\[indent-region] attempt to indent code
 based on the position of {} pairs and #-type directives.  The variable
@@ -1735,7 +1744,25 @@ without questions"
       (define-key pov-mode-map "\C-c\C-c5" 'pov-menu-render-highest)
       (define-key pov-mode-map "\C-c\C-ci" 'pov-open-include-file) 
       (define-key pov-mode-map "\C-c\C-ce" 'pov-menu-external-viewer)      
-      (define-key pov-mode-map "\C-c\C-cv" 'pov-menu-internal-viewer)      
+      (define-key pov-mode-map "\C-c\C-cv" 'pov-menu-internal-viewer)  
+
+      ;; Misc menu 
+
+      (define-key pov-mode-map [menu-bar Misc] 
+	(cons "Misc" (make-sparse-keymap "Misc")))
+      (define-key pov-mode-map [menu-bar Misc comment]
+	    '(menu-item "Comment out region" comment-region
+			:help "Comment out the region")) 
+     (define-key pov-mode-map [menu-bar Misc uncomment]
+       '(menu-item "Uncomment the region" uncomment-region
+		   :help "Uncomment the region"))   
+     (define-key pov-mode-map [menu-bar Misc kwhelp]
+       '(menu-item "Keyword look up" pov-keyword-help
+		   :help "Open the documentation searching for a keyword"))
+     (define-key pov-mode-map [menu-bar Misc open-the-include]
+       '(menu-item "Open the standard include files" pov-open-include-file
+		   :help "Open the standard include files"))
+     
       ;;  View menu
       
       (define-key pov-mode-map [menu-bar View] 
@@ -1746,6 +1773,9 @@ without questions"
       (define-key pov-mode-map [menu-bar View int]
 	'(menu-item "Internal" pov-menu-internal-viewer
 		    :help "View the image internally"))
+      
+
+	  
       ;; Render menu
       (define-key pov-mode-map [menu-bar Render]
 	(cons "Render" (make-sparse-keymap "Render")))
@@ -1889,22 +1919,38 @@ and autocompleteted, default is word at point"
 ; **********************************
 ; *** Open standard include file ***
 ; **********************************
+;; (defun pov-open-include-file nil
+;;   (interactive)
+;;   "Open one of the standard include files"
+;;   (let* ((default (current-word))
+;; 	 (input (completing-read
+;; 		 (format "File to open (default %s): " default)
+;; 		 pov-keyword-completion-alist))
+;; 	 (kw (if (equal input "")
+;; 		 default
+;; 	       input)))
+;;     ;(get-buffer-create kw)
+;;     ;(switch-to-buffer-other-window kw)
+;;     ;(message (concat pov-include-dir (concat kw ".inc")))
+;;     (find-file-read-only (concat (file-name-as-directory pov-include-dir) 
+;; 				 (concat kw ".inc")))))
+;;MP
 (defun pov-open-include-file nil
   (interactive)
   "Open one of the standard include files"
   (let* ((default (current-word))
 	 (input (completing-read
-		 (format "File to open (default %s): " default)
-		 pov-keyword-completion-alist))
+		 (format 
+		  "File to open (default %s.inc), complete with TAB: " default)
+		 (directory-files pov-include-dir nil "\\.inc")))
 	 (kw (if (equal input "")
-		 default
-	       input)))
-    ;(get-buffer-create kw)
-    ;(switch-to-buffer-other-window kw)
-    ;(message (concat pov-include-dir (concat kw ".inc")))
-    (find-file-read-only (concat (file-name-as-directory pov-include-dir) 
-				 (concat kw ".inc")))
-))
+		 (concat default ".inc")
+	       input))
+	 (target-file (concat (file-name-as-directory pov-include-dir) kw)))
+    (if (file-exists-p target-file)
+	(find-file-read-only target-file)
+      (message "I can't find %s. 
+Maybe you misspelled it?" target-file))))
 
 ; ***************************
 ; *** Commands for povray ***
@@ -2174,12 +2220,14 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 		 (goto-char  (- (point-max) 1))
 		 (switch-to-buffer (current-buffer)))))))
 
+
+
 ; *************
 ; *** Imenu ***  
 ; *************
 (defun pov-helper-imenu-setup ()
   (interactive)
-  (require 'imenu) ;; Make an index for imenu  
+  ; (require 'imenu) ;; Make an index for imenu  
   (if pov-imenu-only-macros
   (setq imenu-generic-expression 
 	'((nil "^#macro\\s-+\\([A-Za-z_][A-Za-z_0-9]*\\)" 1)))
