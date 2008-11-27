@@ -50,11 +50,11 @@ diff pov-mode.el pov-mode-new.el
 echo -n "Can I overwrite pov-mode.el? "
 read i
 case $i in 
-	y|Y) cp pov-mode.el pov-mode.el.backup
-		mv pov-mode-new.el pov-mode.el
-
+	n|N|no|NO) echo "I won't touch it" 
 	;;
-	*) echo "ok"
+	*)  cp pov-mode.el pov-mode.el.backup
+		mv pov-mode-new.el pov-mode.el
+		echo "pov-mode.el has been updated, ready to run"
 	;;
 esac
 

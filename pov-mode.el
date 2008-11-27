@@ -1,16 +1,12 @@
 ;;; pov-mode.el --- major mode for Povray scene files
 ;;
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
-;; Maintainer: Peter Toneby <woormie@acc.umu.se>
+;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
 ;; Created: 04 March 1994
-;; Modified: 05 Feb 2008
-;; Version: 2.10-pl1
+;; Modified: 10 Feb 2008
+;; Version: 2.11
 ;; Keywords: pov, povray
 ;;
-;; Modified by: Marco Pessotto <marco.erika@gmail.com>
-;; 1/5/2008
-;; Workaround for Emacs 22
-;; Peter Tobeby no more maintains pov-mode :-(
 ;;
 ;; LCD Archive Entry:
 ;; povray|Peter Toneby|woormie@acc.umu.se|
@@ -19,19 +15,22 @@
 ;;
 ;; Copyright (C) 1997 Peter W. Boettcher
 ;;
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
-;; any later version.
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
 ;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 ;;
+;;    This program is free software: you can redistribute it and/or modify
+;;    it under the terms of the GNU General Public License as published by
+;;    the Free Software Foundation, either version 3 of the License, or
+;;    (at your option) any later version.
+;;
+;;    This program is distributed in the hope that it will be useful,
+;;    but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;    GNU General Public License for more details.
+;;
+;;    You should have received a copy of the GNU General Public License
+;;    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;
+;;;;
 ;;; Commentary:
 ;;
 ;; This major mode for GNU Emacs provides support for editing Povray
@@ -41,19 +40,28 @@
 ;; ability to look up those keywords in the povray docu.
 ;;
 ;; It should work for either Xemacs or FSF Emacs, versions >= 20;
-;; however, only Xemacs can display pictures.
+;; however, only Xemacs can display pictures (but we are working on it).
 ;;
 ;; To automatically load pov-mode every time Emacs starts up, put the
 ;; following line into your .emacs file:
 ;;
 ;;      (require 'pov-mode)
 ;;
+;; or better: 
+;;
+;;         autoload 'pov-mode "/path/to/pov-mode.el" ;; please modify this
+;;            "PoVray scene file mode" t)
+;;         setq auto-mode-alist
+;;	      (append '(("\\.pov$" . pov-mode) 
+;;		  ("\\.inc$" . pov-mode)
+;;               ) auto-mode-alist))
+;;
 ;; Of course pov-mode has to be somewhere in your load-path for emacs
 ;; to find it (Use C-h v load-path to see which directories are in the
 ;; load-path).
 ;;
 ;; NOTE: To achieve any sort of reasonable performance, YOU MUST
-;;   byte-compile this package.  In emacs, type M-x byte-compile
+;;   byte-compile this package.  In emacs, type M-x byte-compile-file
 ;;   and then enter the name of this file.
 ;;
 ;; You can customize the behaviour of pov-mode and via the
@@ -63,6 +71,7 @@
 ;;
 ;; To learn about the basics, just load a pov-file and press C-h m.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; 
 
 ;;
 ;;Modified by: Peter Boettcher <pwb@andrew.cmu.edu>
@@ -179,17 +188,25 @@
 ;;    Fix a bug with rendering so that the active buffer is changed to the
 ;;        correct buffer, found by Hartwig Bosse.
 ;;
+;; Modified by: Marco Pessotto <marco.erika@gmail.com>
+;; 1/5/2008
+;;    Workaround for Emacs 22 (on which pov-mode was not working)
+;; 2/10/2008
+;;    Really fix the defcustom menu for faces
+;;    Upgraded to GPL 3
+;;
+;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
 ;;        Cre Date:     04 March 1994
 ;; This file derived from postscript mode by Chris Maio
 ;;
-;;  Please send bug reports/comments/suggestions to Peter Toneby
-;;        woormie@acc.umu.se
+;;  Please send bug reports/comments/suggestions to Marco Pessotto
+;;        marco.erika@gmail.com
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; TODO list:
+;; TODO list:   ==OLD==
 ;; * Vector operations (add <0, .5, 1> to every vector in region)
 ;; * Clean up completion code
 ;; * TAGS, to jump to #declared objects elsewhere in the code
@@ -204,8 +221,27 @@
 ;; * Make sure the scopes are correct
 ;; * Make hooks for menus, so they are userselectable
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Better safe than sorry, lets fail if you are using a (very?) old
+;; TODO list (mp)
+;; * Internal display on Emacs 22
+;; * fixing or workaround for povuser.txt
+;; * upgrade to PoV-ray 3.6
+;; *fix the bug with: Mark set
+;;  byte-code: Beginning of buffer
+;;  Making completion list...
+;;  Mark set [2 times]
+;;  (AOILegno . 320)
+;;  nil
+;;  ----
+;;  (AOILegno . 478)
+;;  ((AOILegno . 320))
+;;  ----
+;;  (AOILegno . 635)
+;;  ((AOILegno (AOILegno . 320) AOILegno . 478))
+;;  ----
+;;  imenu--truncate-items: Wrong type argument: listp, 635
+;;  imenu--cleanup: Wrong type argument: listp, 635
+;;  Auto-saving...
+;;;; Better safe than sorry, lets fail if you are using a (very?) old
 ;; version of (X)Emacs.
 (if (if (save-match-data (string-match "Lucid\\|XEmacs" (emacs-version)))
 	(and (= emacs-major-version 19) (< emacs-minor-version 14))
@@ -253,52 +289,50 @@
       font-pov-is-Emacs20 
       font-pov-is-Emacs21 
       font-pov-is-Emacs22))
-
+;;; font-pov-is-Emacs returns t, font-pov-is-Emacs22 t, anything else nil
 
 (require 'cl)
 (require 'font-lock) ;;[TODO] Not nice to reqire it, the user should
                      ;;       have a choise...
 
-(defconst pov-mode-version '2.10
+(defconst pov-mode-version '2.11   ;; this is the only occurence
   "The povray mode version.")
 
 (defvar pov-tab-width 8)
 (defvar pov-autoindent-endblocks t)
 
 ;;Create fontfaces
-(defvar font-pov-number-face 'font-pov-number-face
-  "Face to use for PoV numbers.")
-
-(defvar font-pov-variable-face 'font-pov-variable-face
-  "Face to use for PoV variables.")
-
-(defvar font-pov-directive-face 'font-pov-directive-face
-  "Face to use for PoV directives.")
-
-(defvar font-pov-object-face 'font-pov-object-face
-  "Face to use for PoV objects.")
-
+;;(defvar font-pov-number-face 'font-pov-number-face
+;;  "Face to use for PoV numbers.")
+;;
+;;(defvar font-pov-variable-face 'font-pov-variable-face
+;;  "Face to use for PoV variables.")
+;;
+;;(defvar font-pov-directive-face 'font-pov-directive-face
+;;  "Face to use for PoV directives.")
+;;
+;;(defvar font-pov-object-face 'font-pov-object-face
+;;  "Face to use for PoV objects.")  ;; we define this variable later. Why here?
+;;
 ;(defvar font-pov-object-modifier-face 'font-pov-object-modifier-face
 ;  "Face to use for PoV objects.")
 
 ;(defvar font-pov-texture-face 'font-pov-texture-face
 ;  "Face to use for PoV objects.")
 
-(defvar font-pov-operator-face 'font-pov-operator-face
-  "Face to use for PoV operators.")
 
-(defvar font-pov-csg-face 'font-pov-csg-face
-  "Face to use for PoV csg keywords.")
-
+;;(defvar font-pov-csg-face 'font-pov-csg-face
+;;  "Face to use for PoV csg keywords.")
+;;
 ;(defvar font-pov-string-face nil
 ;  "Face to use for strings.  This is set by font-PoV.")
 
 (defvar font-pov-macro-name-face nil
   "Face to use for strings.  This is set by font-PoV.")
 
-(defvar font-pov-keyword-face nil
-  "Face to use for misc keywords.  This is set by font-PoV.")
-
+;;(defvar font-pov-keyword-face nil
+;;  "Face to use for misc keywords.  This is set by font-PoV.")
+;;
 (defvar pov-insertmenu-location nil
   "Location of the InsertMenu directory structure.")
 
@@ -306,6 +340,9 @@
   "Location of the menubaricons.")
 
 ; Seems like Emacs lacks these functions (locate-data-[directory|file])...
+
+;; MP: I don't use these functions because I set it externally with the setup.sh script
+;; I'm going to  comment out this
 (unless (fboundp 'locate-data-directory)
   (defun locate-data-directory (name &optional dirs)
     (if dirs
@@ -338,7 +375,7 @@
 	:type 'string
 	:group 'pov)
 
-      (defcustom pov-external-viewer-command "xv"
+      (defcustom pov-external-viewer-command "display" ;; It seems that ImageMagick is quite popular
 	"*The external viewer to call."
 	:type 'string
 	:group 'pov)
@@ -392,6 +429,7 @@
 	"External view")
       (defvar pov-internal-view
 	"Internal view")
+
       (defvar pov-command-alist (list (list "Render"
 					    povray-command pov-run-default
 					    '()) ;history for the command
@@ -415,7 +453,7 @@
 					    (list pov-internal-view)
 					    '()))
 	"the commands to run")
-
+;;;;;;;; fix fix fix me ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       (defcustom pov-home-dir "SHARELIBSPOVRAY"
 	"*The directory in which the povray files reside."
 	:type 'directory
@@ -438,14 +476,18 @@ pov-mode when loaded, unless those file-endings are already in use."
 	:group 'pov)
 
       (defcustom pov-fontify-insanely t
-	"*Non-nil means colorize every povray keyword.  This may take a while on large files.  Maybe disable this on slow systems."
+	"*Non-nil means colorize every povray keyword.  
+This may take a while on large files.  Maybe disable this on slow systems."
 	:type 'boolean
 	:group 'pov)
 
-      (defcustom pov-imenu-in-menu t
-	"*Non-nil means have #locals and #declares in a menu called PoV in the menubar. This may take a while on large files.  Maybe disable this on slow systems."
+      (defcustom pov-imenu-in-menu t 
+	"*Non-nil means have #locals and #declares in a menu 
+called PoV in the menubar. This may take a while on large files.  
+Maybe disable this on slow systems." 
 	:type 'boolean
 	:group 'pov)
+;; this maybe mess up things FIX-ME
 ;; CH
       (defcustom pov-imenu-only-macros t
         "*Non-nil means to restrict imenu to macro declarations."
@@ -458,7 +500,8 @@ pov-mode when loaded, unless those file-endings are already in use."
 	:group 'pov)
 
       (defcustom pov-autoindent-endblocks t
-	"*When non-nil, automatically reindents when you type break, end, or else."
+	"*When non-nil, automatically reindents when you type break, 
+end, or else."
 	:type 'boolean
 	:group 'pov
 	)
@@ -478,18 +521,23 @@ pov-mode when loaded, unless those file-endings are already in use."
 	:type 'boolean
 	:group 'pov)
 
-      (defcustom font-pov-csg-face t
+      (defcustom font-pov-csg-face 'font-pov-csg-face
 	"*What color does CSG-object have"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-object-face t
+      (defcustom font-pov-object-face 'font-pov-object-face
 	"*What color does objects have"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-variable-face t
+      (defcustom font-pov-variable-face 'font-pov-variable-face
 	"*What color does variables (in declarations) have"
+	:type 'face
+	:group 'pov)
+
+      (defcustom font-pov-operator-face 'font-pov-operator-face
+	"*Face to use for PoV operators."
 	:type 'face
 	:group 'pov)
 
@@ -505,20 +553,20 @@ pov-mode when loaded, unless those file-endings are already in use."
 
 ;      (defcustom font-pov-object-modifier-face t
 ;	"*What color does object modifiers have"
-;	:type 'face
+ ;	:type 'face
 ;	:group 'pov)
 
-      (defcustom font-pov-directive-face t
+      (defcustom font-pov-directive-face 'font-pov-directive-face
 	"*What color does (#)-directives have"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-number-face t
+      (defcustom font-pov-number-face 'font-pov-number-face
 	"*What color does numbers have"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-keyword-face t
+      (defcustom font-pov-keyword-face 'font-pov-keyword-face
 	"*What color does keywords have"
 	:type 'face
 	:group 'pov)
