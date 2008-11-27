@@ -40,8 +40,8 @@
 ;; ability to look up those keywords in the povray docu.
 ;;
 ;; It should work for either Xemacs or FSF Emacs, versions >= 20;
-;; At the present, pov-mode have internal display of picture only with Xemacs.
-;; Internal display for GNU Emacs will come soon.
+;; At the present, pov-mode have internal display of picture with Xemacs
+;; and GNU Emacs 22
 ;;
 ;; To automatically load pov-mode every time Emacs starts up, put the
 ;; following line into your .emacs file:
@@ -198,6 +198,10 @@
 ;;    Provides a setup.sh script that fix some vars and update the .emacs
 ;; 2/11/2008
 ;;    Added internal view for GNU Emacs 22
+;; 2/13/2008
+;;    Fixed faces to be consistent with other languages
+;;     (as much as possible). If you don't like, customize it via
+;;     M-x customize-group pov. Beware! Doesn't tested on Xemacs nor earlier versions of GNU emacs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -227,22 +231,12 @@
 ;; * fixing or workaround for povuser.txt
 ;; * upgrade to PoV-ray 3.6
 ;; *fix the bug with: Mark set
-;;  byte-code: Beginning of buffer
-;;  Making completion list...
-;;  Mark set [2 times]
-;;  (AOILegno . 320)
-;;  nil
-;;  ----
-;;  (AOILegno . 478)
-;;  ((AOILegno . 320))
-;;  ----
-;;  (AOILegno . 635)
-;;  ((AOILegno (AOILegno . 320) AOILegno . 478))
-;;  ----
 ;;  imenu--truncate-items: Wrong type argument: listp, 635
 ;;  imenu--cleanup: Wrong type argument: listp, 635
 ;;  Auto-saving...
 ;;  Workaround: setq pov-imenu-only-macros t (via M-x customize)
+
+
 ;;;; Better safe than sorry, lets fail if you are using a (very?) old
 ;; version of (X)Emacs.
 (if (if (save-match-data (string-match "Lucid\\|XEmacs" (emacs-version)))
@@ -461,12 +455,12 @@
 					    '()))
 	"the commands to run")
 ;;;;;;;; fix fix fix me ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      (defcustom pov-home-dir "SHARELIBSPOVRAY"
+      (defcustom pov-home-dir "SHARELIBSPOVRAY/"
 	"*The directory in which the povray files reside."
 	:type 'directory
 	:group 'pov)
 
-      (defcustom pov-include-dir "SHARELIBSPOVRAY/include"
+      (defcustom pov-include-dir "SHARELIBSPOVRAY/include/"
 	"*The directory in which the povray includefiles reside."
 	:type 'directory
 	:group 'pov)
@@ -527,24 +521,32 @@ end, or else."
 	"*Turn on syntax highlighting automatically"
 	:type 'boolean
 	:group 'pov)
+      
 
-      (defcustom font-pov-csg-face 'font-pov-csg-face
-	"*What color does CSG-object have"
+
+      (defcustom font-pov-csg-face 'font-lock-function-name-face
+	"*What color does CSG-object have. Also try
+font-pov-csg-face"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-object-face 'font-pov-object-face
-	"*What color does objects have"
+      (defcustom font-pov-object-face 'font-lock-type-face
+	"*What color does objects have. Also try 
+font-pov-object-face"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-variable-face 'font-pov-variable-face
-	"*What color does variables (in declarations) have"
+      (defcustom font-pov-variable-face 'font-lock-variable-name-face ; should
+								      ; be
+								      ; OK
+	"*What color does variables (in declarations) have. Also try
+font-pov-variable-face"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-operator-face 'font-pov-operator-face
-	"*Face to use for PoV operators."
+      (defcustom font-pov-operator-face  'font-lock-builtin-face
+	"*Face to use for PoV operators. Also try 
+font-pov-operator-face"
 	:type 'face
 	:group 'pov)
 
@@ -563,22 +565,38 @@ end, or else."
  ;	:type 'face
 ;	:group 'pov)
 
-      (defcustom font-pov-directive-face 'font-pov-directive-face
-	"*What color does (#)-directives have"
+      (defcustom font-pov-directive-face 'font-lock-preprocessor-face ; OK
+	"*What color does (#)-directives have. Also try 
+font-pov-directive-face"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-number-face 'font-pov-number-face
-	"*What color does numbers have"
+      (defcustom font-pov-number-face 'font-lock-constant-face
+	"*What color does numbers have. Also try 
+font-pov-number-face"
 	:type 'face
 	:group 'pov)
 
-      (defcustom font-pov-keyword-face 'font-pov-keyword-face
-	"*What color does keywords have"
+      (defcustom font-pov-keyword-face 'font-lock-keyword-face
+	"*What color does keywords have. Also try 
+font-pov-keyword-face"
 	:type 'face
 	:group 'pov)
       )
 )
+
+
+;; (if font-pov-standard-colors
+;;     (setq font-pov-keyword-face 'font-lock-keyword-face
+;; 	  font-pov-object-face 'font-lock-function-name-face))
+	  
+
+;; 	`(,pov-comment-face-regexp 0 font-lock-comment-face) OK
+;; 		`(,pov-object-face-regexp 1 font-lock-function-name-face)
+;; 		`(,pov-constant-face-regexp 0 font-lock-constant-face)
+;; 		`(,pov-include-face-regexp 1 font-lock-include-face)
+;; 		`(,pov-define-face-regexp 0 font-lock-reference-face)
+;; 		`(,pov-keyword-face-regexp 1 font-lock-keyword-face) ok
 
 ; Find where the menubar icons are placed, should be where pov-mode is...
 ;; (setq pov-icons-location 
@@ -1705,8 +1723,13 @@ character number of the character following `begin' or START if not found."
       (define-key pov-mode-map "d" 'pov-autoindent-endblock)))
 
 ; ***********************
-; *** povkeyword help ***
-; ***********************
+; *** povkeyword help *** We are in troubles, because the documentation
+; *********************** is no longer in text format, but in html. 
+;; I'd like to dump all in a text file, but the documentation is not
+;; under GLP. So, what shall we do? Simply echo: "find yourself the
+;; doc?". Or open a external browser, but where? there are more
+;; then 150 files. Where is the right one, without violating the
+;; license? MP
 (defun pov-keyword-help nil
   (interactive)
   "look up the appropriate place for keyword in the POV documentation"
@@ -2057,7 +2080,8 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 	     (make-frame)
 	     (make-frame-visible)
 	     (insert-image (create-image file) )
-	      	   (forward-char)
+	     (insert "              ") ;; avoid blinking cursor
+	     (forward-char  (point-max))
 	     )))))
 
 ; *************
@@ -2143,7 +2167,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
   )
 
 ;; Let's try to find where the InsertMenu is located...
-(setq pov-insertmenu-location "EMACSLISPLIBRARY/InsertMenu")
+(setq pov-insertmenu-location "EMACSLISPLIBRARY/InsertMenu/")
 ;;       (locate-data-directory "InsertMenu" (cons (file-name-directory
 ;; 						 (locate-library "pov-mode"))
 ;; 						(if font-pov-is-Emacs

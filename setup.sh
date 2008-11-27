@@ -47,7 +47,8 @@ sed -e "s|SHARELIBSPOVRAY|$povshare|" \
 cp pov-mode.el pov-mode.el.backup
 mv pov-mode-new.el pov-mode.el
 echo "pov-mode.el has been updated, ready to run"
-
+echo 
+echo
 append_me () {
 echo "(autoload 'pov-mode \"${povlib}/pov-mode.el\" "
 echo "          \"PoVray scene file mode\" t) "
@@ -56,40 +57,28 @@ echo "		  (\"\\\\.inc\$\" . pov-mode))"
 echo "                auto-mode-alist))"
 }
 
-
-echo "Can I modify your $HOME/.emacs, appending a few lines, "
-echo "setting the load-path and the autoload, so you can use"
-echo "pov-mode now, after restarting emacs? Avoid this if you"
-echo -n " are upgrading an existent pov-mode.el (y/n) >>> "
-read i
-case $i in 
-    y|Y)
-	if [ ! -f $HOME/.emacs ]; then
-	    touch $HOME/.emacs
-	fi
-	cp $HOME/.emacs $HOME/.emacs_backup
-	append_me >> $HOME/.emacs
-	;;
-    *) 
-	echo "giving up"
-	;;
-esac
-
-exit 0
-
+echo "You must add some lines on your .emacs, usually $HOME/.emacs"
+echo
+echo ";; =====CUT HERE======"
+append_me
+echo ";; =====CUT HERE====="
 # 
-# echo "I changed this: "
-# diff pov-mode.el pov-mode-new.el
-# echo -n "Can I overwrite pov-mode.el? "
+# echo "Can I modify your $HOME/.emacs, appending a few lines, "
+# echo "setting the load-path and the autoload, so you can use"
+# echo "pov-mode now, after restarting emacs? Avoid this if you"
+# echo -n " are upgrading an existent pov-mode.el (y/n) >>> "
 # read i
 # case $i in 
-# 	n|N|no|NO) echo "I won't touch it" 
+#     y|Y)
+# 	if [ ! -f $HOME/.emacs ]; then
+# 	    touch $HOME/.emacs
+# 	fi
+# 	cp $HOME/.emacs $HOME/.emacs_backup
+# 	append_me >> $HOME/.emacs
 # 	;;
-# 	*)  cp pov-mode.el pov-mode.el.backup
-# 		mv pov-mode-new.el pov-mode.el
-# 		echo "pov-mode.el has been updated, ready to run"
+#     *) 
+# 	echo "giving up"
 # 	;;
 # esac
 # 
-# exit 0
-# 
+exit 0
