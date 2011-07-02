@@ -4,7 +4,7 @@
 
 ;;
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
-;; Maintainer: Marco Pessotto <marco.erika@gmail.com>
+;; Maintainer: Marco Pessotto <melmothx@gmail.com>
 ;; Created: 04 March 1994
 ;; Modified: 26 May 2008
 ;; Version: 3.2
@@ -192,7 +192,7 @@
 ;;    Fix a bug with rendering so that the active buffer is changed to the
 ;;        correct buffer, found by Hartwig Bosse.
 ;;
-;; Modified by: Marco Pessotto <marco.erika@gmail.com>
+;; Modified by: Marco Pessotto <melmothx@gmail.com>
 ;; 2008-01-05
 ;;    Workaround for Emacs 22 (on which pov-mode was not working)
 ;; 2008-02-10
@@ -298,7 +298,7 @@
 ;;
 ;;  Please send bug reports/comments/suggestions and of course patches to 
 ;;           Marco Pessotto
-;;        <marco.erika@gmail.com>
+;;        <melmothx@gmail.com>
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;               TODO
 ;;
