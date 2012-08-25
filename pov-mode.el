@@ -402,8 +402,8 @@
 (defvar pov-default-view-internal)
 (defvar pov-image-file)
 (defvar pov-default-image-extension)
-(defvar rendericon)
-(defvar viewicon)
+(defvar pov-rendericon)
+(defvar pov-viewicon)
 (defvar pov-documentation-directory)
 (defvar pov-documentation-keyword-index)
 (defvar pov-documentation-index)
@@ -1613,9 +1613,9 @@ character number of the character following `begin' or START if not found."
   (save-excursion
     (let ((pov-completion-all nil))
       (pov-get-scope)
-      (mapc '(lambda (s)
-		 (if (string-match (concat "\\<" pov-completion-str) s)
-		     (setq pov-completion-all (cons s pov-completion-all))))
+      (mapc #'(lambda (s)
+	       (if (string-match (concat "\\<" pov-completion-str) s)
+		   (setq pov-completion-all (cons s pov-completion-all))))
 	      pov-completion-list)
       ;; Now we have built a list of all matches. Give response to caller
       (pov-completion-response))))
@@ -1665,7 +1665,7 @@ character number of the character following `begin' or START if not found."
 	 ;(pov-buffer-to-use (current-buffer))
 	 (allcomp (all-completions pov-completion-str 'pov-completion))
 	 (match (try-completion
-		 pov-completion-str (mapcar '(lambda (elm)
+		 pov-completion-str (mapcar #'(lambda (elm)
 					       (cons elm 0)) allcomp))))
     ;; Delete old string
     (delete-region b e)
@@ -1831,17 +1831,17 @@ without questions"
       ;; tool-bar entries for GNU Emacs
       (if (and font-pov-is-Emacs (image-type-available-p 'xpm))
 	  (progn 
-	    (setq viewicon (concat pov-icons-location "povview.xpm")
-		  rendericon (concat pov-icons-location "povrender.xpm"))
+	    (setq pov-viewicon (concat pov-icons-location "povview.xpm")
+		  pov-rendericon (concat pov-icons-location "povrender.xpm"))
 	    (define-key pov-mode-map [tool-bar  render] 
 	      ;;      '(menu-item "Render" pov-render-dialog
 	      `(menu-item "Render this file using the default quality" 
 			  pov-tool-bar-command-render
-			  :image ,(create-image rendericon )))
+			  :image ,(create-image pov-rendericon )))
 
 	    (define-key pov-mode-map [tool-bar view] 
 	      `(menu-item "Preview"   pov-tool-bar-command-view
-			  :image ,(create-image viewicon)))))))
+			  :image ,(create-image pov-viewicon)))))))
   
 
 
@@ -2227,20 +2227,10 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
     (if (file-exists-p (pov-get-the-default-image-name))
 	(setq file (pov-get-the-default-image-name))
       (setq file
-	  (read-file-name "Which image file should I display? "))))
-  (let ((buffer (get-buffer-create
-		 (format "*Povray View %s*" file))))
-    (with-current-buffer buffer
-      (toggle-read-only -1)
-      (erase-buffer)
-      (if (and  font-pov-is-Emacs22 (image-type-available-p 'png)) ;; MP
-	  (progn (clear-image-cache) ;; really important!
-		 (insert "\n")
-		 (goto-char (point-max))
-		 (insert-image (create-image file) )
-		 (insert "              \n\nType C-x b to go back!") ;; avoid blinking cursor
-		 (goto-char  (- (point-max) 1))
-		 (switch-to-buffer (current-buffer)))))))
+	    (read-file-name "Which image file should I display? "))))
+  (if (and font-pov-is-Emacs22 (image-type-available-p 'png)) ;; MP
+      (find-file file)
+    (message "You can't visit a png file!")))
 
 
 
