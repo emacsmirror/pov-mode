@@ -6,8 +6,8 @@
 ;; Author: Peter Boettcher <pwb@andrew.cmu.edu>
 ;; Maintainer: Marco Pessotto <melmothx@gmail.com>
 ;; Created: 04 March 1994
-;; Modified: 26 May 2008
-;; Version: 3.2
+;; Modified: 25 August 2012
+;; Version: 3.3
 ;; Keywords: pov, povray
 ;;
 
@@ -289,7 +289,9 @@
 ;;     Written the texinfo manual. No code improvement (sorry)
 ;; 2008-05-26 
 ;;     Minor changes to the info manual. Thanks to Xah Lee.
-;;     
+;; 2012-08-25 Version 3.3
+;;     Bug fixes for warnings. Don't require cl at runtime. Tested with 
+;;     GNU Emacs 22, 23 and 24
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Original Author:     Kevin O. Grover <grover@isri.unlv.edu>
@@ -417,13 +419,13 @@
 ;; end initialisation
 
 
-(require 'cl)
+(eval-when-compile (require 'cl))
 (require 'imenu)
 (require 'font-lock) 
 (require 'browse-url)
 (require 'newcomment)
 
-(defconst pov-mode-version '3.2   ;; this is the only occurence
+(defconst pov-mode-version '3.3   ;; this is the only occurence
   "The povray mode version.")
 
 (defvar pov-tab-width)
@@ -1052,7 +1054,7 @@ font-pov-keyword-face"
 
 ;;;###autoload
 (defun pov-mode nil
-  "Major mode for editing PoV files. (Version 3.2)
+  "Major mode for editing PoV files. (Version 3.3)
 
    In this mode, TAB and \\[indent-region] attempt to indent code
 based on the position of {} pairs and #-type directives.  The variable
@@ -1158,12 +1160,12 @@ current word based on point location.
 
 (defun pov-open nil
   (interactive)
-  (insert last-command-char))
+  (insert last-command-event))
 
 (defun pov-close nil
   "Inserts and indents a close delimiter."
   (interactive)
-  (insert last-command-char)
+  (insert last-command-event)
   (backward-char 1)
   (pov-indent-close)
   (forward-char 1)
@@ -1611,7 +1613,7 @@ character number of the character following `begin' or START if not found."
   (save-excursion
     (let ((pov-completion-all nil))
       (pov-get-scope)
-      (mapcar '(lambda (s)
+      (mapc '(lambda (s)
 		 (if (string-match (concat "\\<" pov-completion-str) s)
 		     (setq pov-completion-all (cons s pov-completion-all))))
 	      pov-completion-list)
@@ -1827,7 +1829,7 @@ without questions"
 	'(menu-item "Default"  pov-tool-bar-command-render
 		    :help "Render at default quality"))
       ;; tool-bar entries for GNU Emacs
-      (if font-pov-is-Emacs
+      (if (and font-pov-is-Emacs (image-type-available-p 'xpm))
 	  (progn 
 	    (setq viewicon (concat pov-icons-location "povview.xpm")
 		  rendericon (concat pov-icons-location "povrender.xpm"))
@@ -1884,8 +1886,7 @@ and autocompleteted, default is word at point"
 				pov-documentation-index)))
 	; ( browse-url-generic-program pov-external-browser )
 	 target-file)
-    (save-excursion 
-      (set-buffer buffer)
+    (with-current-buffer buffer
       (setq buffer-read-only t)
       (widen)
       (goto-char (point-min))
@@ -2159,8 +2160,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 ;; (buffer-file-name)) ".png"). Much simplier, and avoids the
 ;; long-long-path-bug
   (let ((image-file nil))
-    (save-excursion
-      (set-buffer (process-buffer process))
+    (with-current-buffer (process-buffer process)
       (save-excursion
 	;; find out how our file is called
 	(if (string-match "^ *Output file: \\(.*\\), [0-9]+ bpp.*$" string)
@@ -2176,7 +2176,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 
 (defun pov-external-view-sentinel (process event)
   ;;seems like we finished viewing => remove process from hash
-  (cl-remhash (process-name process) pov-current-view-processes)
+  (remhash (process-name process) pov-current-view-processes)
   (if (equal 0 (process-exit-status process))
       (message (concat "view completed successfully")) ;XXX
     (message (format "view exit status %d"
@@ -2193,7 +2193,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
   (let ((view-command nil)
 	(view-options nil)
 	(view-history nil)
-	(other-view (cl-gethash (concat pov-external-view file) 
+	(other-view (gethash (concat pov-external-view file) 
 				pov-current-view-processes))
 	(process nil))
     (if (and other-view (processp other-view))  ;external
@@ -2213,7 +2213,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
     (setq process (apply 'start-process (concat pov-external-view file) nil
 			 view-command (split-string view-options)))
     ;;; remember what we have done
-    (cl-puthash (process-name process) process pov-current-view-processes)
+    (puthash (process-name process) process pov-current-view-processes)
     ;; update history
     (setf (fourth (assoc pov-external-view pov-command-alist)) view-history)
     ;;Sentinel for viewer call (XXX argl, what a hack)
@@ -2230,8 +2230,7 @@ filename of the output image (XXX with a horrible buffer-local-hack...)"
 	  (read-file-name "Which image file should I display? "))))
   (let ((buffer (get-buffer-create
 		 (format "*Povray View %s*" file))))
-    (save-excursion
-      (set-buffer buffer)
+    (with-current-buffer buffer
       (toggle-read-only -1)
       (erase-buffer)
       (if (and  font-pov-is-Emacs22 (image-type-available-p 'png)) ;; MP

@@ -1,12 +1,12 @@
-This is pov-mode.info, produced by makeinfo version 4.8 from
-pov-mode.texi.
+This is pov-mode.info, produced by makeinfo version 4.13 from
+info/pov-mode.texi.
 
 INFO-DIR-SECTION Emacs
 START-INFO-DIR-ENTRY
 * Pov-mode: (pov-mode.info). A major mode for editing POV-Ray scene
 END-INFO-DIR-ENTRY
 
-   This is the manual for pov-mode.el (version 3.2, 26 May 2008),
+   This is the manual for pov-mode.el (version 3.3, 25 August 2012),
 
    Copyright (C) 2008 Marco Pessotto
 
@@ -24,7 +24,7 @@ File: pov-mode.info,  Node: Top,  Next: Installation,  Prev: (dir),  Up: (dir)
 The pov-mode.el manual
 **********************
 
-This is the manual for pov-mode.el (version 3.2, 26 May 2008),
+This is the manual for pov-mode.el (version 3.3, 25 August 2012),
 
    Copyright (C) 2008 Marco Pessotto
 
@@ -105,13 +105,13 @@ File: pov-mode.info,  Node: load-path,  Next: Compilation,  Prev: Installation, 
 1.2 Add `pov-mode.el' to your `load-path'
 =========================================
 
-Assuming you have unpacked the tarball in `~/elisp/pov-mode-3.2', and
+Assuming you have unpacked the tarball in `~/elisp/pov-mode-3.3', and
 the file `pov-mode.el' resides there, you should add these lines to your
 `.emacs':
 
 
 
-     (add-to-list 'load-path "~/elisp/pov-mode-3.2")
+     (add-to-list 'load-path "~/elisp/pov-mode-3.3")
      (autoload 'pov-mode "pov-mode" "PoVray scene file mode" t)
      (add-to-list 'auto-mode-alist '("\\.pov\\'" . pov-mode))
      (add-to-list 'auto-mode-alist '("\\.inc\\'" . pov-mode))
@@ -927,24 +927,24 @@ permit their use in free software.
 
 
 Tag Table:
-Node: Top714
-Node: Installation1798
-Node: load-path2605
-Node: Compilation3653
-Node: InsertMenu3991
-Node: Include and docs5100
-Node: Getting started5833
-Node: The menu-bar7057
-Node: Imenu7294
-Node: Insert menu8075
-Node: Render menu9514
-Node: The View Menu10850
-Node: Misc menu11860
-Node: tools12662
-Node: keyword-help12916
-Node: include-file14287
-Node: universal14907
-Node: Copying This Manual15451
-Node: GNU Free Documentation License15668
+Node: Top723
+Node: Installation1810
+Node: load-path2617
+Node: Compilation3665
+Node: InsertMenu4003
+Node: Include and docs5112
+Node: Getting started5845
+Node: The menu-bar7069
+Node: Imenu7306
+Node: Insert menu8087
+Node: Render menu9526
+Node: The View Menu10862
+Node: Misc menu11872
+Node: tools12674
+Node: keyword-help12928
+Node: include-file14299
+Node: universal14919
+Node: Copying This Manual15463
+Node: GNU Free Documentation License15680
 
 End Tag Table
