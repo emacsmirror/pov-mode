@@ -833,7 +833,7 @@ font-pov-keyword-face"
   "PoV hack to handle Emacs/XEmacs foo")
 
 (defvar pov-begin-re 
-  "\\<#\\(if\\(n?def\\)?\\|case\\|macro\\|range\\|switch\\|while\\)\\>")
+  "\\<#\\(if\\(n?def\\)?\\|case\\|macro\\|range\\|switch\\|while\\|for\\)\\>")
 
 (defvar pov-end-re  "\\<#break\\|#end\\>")
 
@@ -1000,10 +1000,11 @@ font-pov-keyword-face"
     (concat "\\<\\("
 	    (regexp-opt '("#break" "#case" "#debug" "#declare"
 			  "#default" "#else" "#end" "#error" "#fclose"
-			  "#fopen" "#if" "#ifdef" "#ifndef" "#include"
-			  "#local" "#macro" "#range" "#read" "#render"
-			  "#statistics" "#switch" "#undef" "#version"
-			  "#warning" "#while" "#write") t)
+			  "#fopen" "#for" "#if" "#ifdef" "#ifndef"
+			  "#include" "#local" "#macro" "#range" "#read"
+			  "#render" "#statistics" "#switch" "#undef"
+			  "#version" "#warning" "#while" "#write")
+			  t)
 	    "\\)\\>")))
 
 (defvar pov-all-objects-matcher
